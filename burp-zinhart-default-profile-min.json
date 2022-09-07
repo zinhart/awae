@@ -1,0 +1,20 @@
+{
+    "user_options":{
+        "display":{
+            "user_interface":{
+                "font_size":15,
+                "look_and_feel":"Dark"
+            }
+        },
+        "connections":{
+            "socks_proxy":{
+                "dns_over_socks":true,
+                "host":"127.0.0.1",
+                "password":"",
+                "port":9050,
+                "use_proxy":true,
+                "username":""
+            }
+        }
+    }
+}
