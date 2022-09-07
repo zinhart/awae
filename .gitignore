@@ -3,4 +3,6 @@
 *.zip
 *.bat
 *.html
+*.burp
+*.ovpn
 debugging
