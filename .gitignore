@@ -6,3 +6,10 @@
 *.burp
 *.ovpn
 debugging
+exercises
+*.txt
+*.tgz
+*.b64
+*.swp
+*.hex
+*.json
