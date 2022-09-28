@@ -5,6 +5,7 @@
 *.html
 *.burp
 *.ovpn
+*.backup
 debugging
 exercises
 *.txt
