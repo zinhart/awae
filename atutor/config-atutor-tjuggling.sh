@@ -1,4 +1,4 @@
 atmail_ip=$(cat /etc/hosts | grep atmail | awk -F " " '{print $1}')
 tun0=$(ip a | grep tun0 | grep -v : | awk -F " " '{print $2}' | awk -F "/" '{print $1}')
 sshpass -p "studentlab" ssh -t -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-dss -oStrictHostKeyChecking=no student@atutor \
-"sudo apt -o Acquire::http::proxy='http://$tun0:3128' update;sudo apt -o Acquire::http::proxy='http://$tun0:3128' install -y vim;sudo chown student /etc/postfix/transport;sudo sed -i '1d' /etc/postfix/transport;sudo echo 'offsec.local smtp:[$atmail_ip]:587' >> /etc/postfix/transport;sudo postmap /etc/postfix/transport"
+"sudo apt -o Acquire::http::proxy='http://$tun0:3128' update;sudo apt -o Acquire::http::proxy='http://$tun0:3128' install -y vim;sudo chown -R student /etc/postfix;sudo sed -i '1d' /etc/postfix/transport;sudo echo 'offsec.local smtp:[$atmail_ip]:587' >> /etc/postfix/transport;sudo postmap /etc/postfix/transport"
