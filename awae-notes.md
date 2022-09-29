@@ -20,3 +20,6 @@ In terms of alternate methods of auth bypasses in ***include/login_functions.inc
     ```bash
     form_login_action=true&form_course_id=0&form1_password_hidden=c7b25645b5bc2b1927b4c4b0247ec2495be3ce6f&p=&form1_login=teacher&form1_password=&submit1=Login&token=
     ```
+Atutor type juggling weak hash TOCTOU
+magic hash attacks
+https://en.wikipedia.org/wiki/Time-of-check_to_time-of-use
