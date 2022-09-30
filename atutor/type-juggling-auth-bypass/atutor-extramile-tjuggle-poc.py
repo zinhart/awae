@@ -30,7 +30,7 @@ for word in map(''.join, itertools.product(string.ascii_lowercase,repeat=int(pre
         print(F"(+) Requests made: {count}")
         print(F"(+) Parameter Values:\ng = {g}\nh = {h}\nid = {id}")
         print(F"(+) Equivalent loose comparison: {hash} == 0" )
-        if (len(hashes) >= 5):
+        if (len(hashes) >= 10):
             break
     count += 1
 for hash in hashes: 
