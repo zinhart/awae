@@ -1,0 +1,3 @@
+[submodule "bsqli"]
+	path = bsqli
+	url = https://github.com/zinhart/bsqli.git
