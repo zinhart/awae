@@ -23,3 +23,23 @@ In terms of alternate methods of auth bypasses in ***include/login_functions.inc
 Atutor type juggling weak hash TOCTOU
 magic hash attacks
 https://en.wikipedia.org/wiki/Time-of-check_to_time-of-use
+## ManageEngine
+Improve the regex used earlier to locate all the SELECT SQL queries in the code base in order to limit the results to only those which include string concatenation and a WHERE clause.
+```sql
+select.*where.*\+
+```
+```sql
+^.*select\s\* from.*\swhere.*\s".*$
+```
+```sql
+(doGet.*|doPost.*)
+```
+```sql
+(doGet.*|doPost.*)+(\n\S.*)+
+```
+We want to search for doGet|doPost functions that contain a sql query with a where clause that has some string concatenation, I've found the best way to do this is to chain greps instead of one mega regexp(and I tried).
+Using the script below we are able to reduce the searchspace to 8 files.
+```bash
+for i in $( grep -RlP '(doGet.*|doPost.*)' manage-engine/com/adventnet/ ); do grep -lP 'select.+from.+where.+\+' $i ; done
+```
+The main thing with identifying where to search for sql injections in manage engine is to ***identify the attacker controllable portions of the application***. This turned out to be the ***doGet*** ***doPost*** methods of ***javax.servlet.http.HttpServletRequest;***. The second part changes from language/framework to language/framework put the concept is same, we look attacker controllable parts of the application(http requests/forms/etc) and use programming language/framework knowledge to narrow our search down. This is how we narrow the attack surface.
