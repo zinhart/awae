@@ -17,3 +17,6 @@ exercises
 *.pyc
 *.java
 *.MF
+*.dit
+*.ntds*
+Sys
