@@ -20,3 +20,7 @@ exercises
 *.dit
 *.ntds*
 Sys
+*.vbs
+*.exe
+*.der
+temp
