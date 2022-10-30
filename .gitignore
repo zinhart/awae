@@ -23,4 +23,7 @@ Sys
 *.vbs
 *.exe
 *.der
+*.ser
+*.class
+*.bin
 temp
