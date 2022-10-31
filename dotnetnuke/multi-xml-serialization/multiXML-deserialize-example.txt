@@ -1,1 +1,0 @@
-<customRootNode><item objectType="MultiXMLDeserializer.ExecCMD, multi-xml-deserializer, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"><ExecCMD xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><cmd>mousepad</cmd></ExecCMD></item></customRootNode>
