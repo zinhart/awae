@@ -1,3 +1,6 @@
 [submodule "bsqli"]
 	path = bsqli
 	url = https://github.com/zinhart/bsqli.git
+[submodule "serialization-deserialization-examples"]
+	path = serialization-deserialization-examples
+	url = https://github.com/zinhart/serialization-deserialization-examples.git
