@@ -26,4 +26,5 @@ Sys
 *.ser
 *.class
 *.bin
+*.xml
 temp
