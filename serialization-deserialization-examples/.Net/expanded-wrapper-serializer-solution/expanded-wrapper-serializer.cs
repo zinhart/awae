@@ -41,6 +41,5 @@ namespace ExpandedWrapperSerializer
             writer.Close();
             Console.WriteLine("Done!");
         }
-
     }
 }
