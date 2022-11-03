@@ -31,37 +31,51 @@ Start-Job -ScriptBlock { python3 -m smtpd -n -c DebuggingServer 0.0.0.0:25; }
 # install remote debugging server python module
 Invoke-SSHCommand -Command '/home/frappe/frappe-bench/env/bin/pip install ptvsd' -SSHSession $worker
 
-# update app.py to enable remote debugging 
+# disable auto debugging
+Invoke-SSHCommand -Command "sudo sed -i 's/web: bench serve --port 8000/#web: bench serve --port 8000/g' /home/frappe/frappe-bench/Procfile" -SSHSession $worker
+
+# update app.py to enable remote debugging
 Set-SCPItem -ComputerName erpnext -Credential $credObject -Path './app.py' -Destination '/home/frappe/frappe-bench/apps/frappe/frappe' -Verbose
 
-# rsync command here
-sshpass -p frappe rsync -azP frappe@erpnext:/home/frappe/frappe-bench .
-
-<#
 # start up services for the frappe webserver (should be in a separate ssh connection)
 Invoke-SSHCommand -Command 'cd /home/frappe/frappe-bench; bench start' -SSHSession $webServerServicesSession
-#>
 
-<#
 # startup the webserver itself (should be in a separate ssh connection)
-Invoke-SSHCommand -Command 'cd /home/frappe/frappe-bench/sites; ../env/bin/python ../apps/frappe/frappe/utils/bench_helper.py frappe serve --port 8000 --noreload --nothreading' -SSHSession $webServerSession
-#>
+Invoke-SSHCommand -Command 'cd /home/frappe/frappe-bench/sites; ../env/bin/python ../apps/frappe/frappe/utils/bench_helper.py frappe serve --port 8000 --noreload --nothreading &' -SSHSession $webServerSession
 
-<#
-
-sshpass -p 'frappe' scp site_config.json frappe@erpnext:/home/frappe/frappe-bench/sites/site1.local/site_config.json;
-
-# install remote debugging server python module
-sshpass -p 'frappe' ssh frappe@erpnext -t '/home/frappe/frappe-bench/env/bin/pip install ptvsd';
-# enable remote debugging server
-sshpass -p 'frappe' scp app.py frappe@erpnext:/home/frappe/frappe-bench/apps/frappe/frappe/app.py;
-# rsync command here
-sshpass -p frappe rsync -azP frappe@erpnext:/home/frappe/frappe-bench .
-# start up services for the frappe webserver (should be in a separate ssh connection)
-sshpass -p 'frappe' ssh frappe@erpnext -t 'cd /home/frappe/frappe-bench; bench start';
-# startup the webserver itself (should be in a separate ssh connection)
-cd /home/frappe/frappe-bench/sites; ../env/bin/python ../apps/frappe/frappe/utils/bench_helper.py frappe serve --port 8000 --noreload --nothreading
-
-
-#>
 Remove-Item site_config.json
+
+# fix up mysql logging  
+Invoke-SSHCommand -Command "sudo sed -i 's/#general_log/general_log/g' /etc/mysql/my.cnf" -SSHSession $worker
+Invoke-SSHCommand -Command "sudo systemctl restart mysql" -SSHSession $worker
+
+# rsync command here
+# sshpass -p frappe rsync -azP frappe@erpnext:/home/frappe/frappe-bench .
+# remote mouting is MUCH faster
+$mount_dir='/home/vagrant/Desktop/erpnext-working'
+mkdir -p $mount_dir
+sshfs -o allow_other frappe@erpnext:/home/frappe/frappe-bench $mount_dir
+mkdir -p $mount_dir/.vscode
+$launch_json="$mount_dir/.vscode/launch.json"
+
+echo '{' >> $launch_json
+echo '    "version": "0.2.0",' >> $launch_json
+echo '    "configurations": [' >> $launch_json
+echo '       {' >> $launch_json
+echo '           "name": "Python: Remote Attach",' >> $launch_json
+echo '           "type": "python",' >> $launch_json
+echo '           "request": "attach",' >> $launch_json
+echo '           "connect": {' >> $launch_json
+echo '               "host": "erpnext",' >> $launch_json
+echo '               "port": 5678' >> $launch_json
+echo '           },' >> $launch_json
+echo '           "pathMappings": [' >> $launch_json
+echo '               {' >> $launch_json
+echo "                   `"localRoot`": `"$mount_dir`"," >> $launch_json
+echo '                   "remoteRoot": "/home/frappe/frappe-bench/"' >> $launch_json
+echo '               }' >> $launch_json
+echo '           ],' >> $launch_json
+echo '           "justMyCode": true' >> $launch_json
+echo '       }' >> $launch_json
+echo '   ]' >> $launch_json
+echo '}' >> $launch_json
