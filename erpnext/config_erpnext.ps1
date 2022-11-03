@@ -9,6 +9,14 @@ $webServerServicesSession = New-SSHSession -ComputerName erpnext -Credential $cr
 $webServerSession = New-SSHSession -ComputerName erpnext -Credential $credObject
 $AWAE_IP = ip a | grep 'inet .* tun0' | awk -F " " '{print $2}' | sed 's/...$//g'
 
+function Write-Log($result, $message_success, $message_fail) {
+    if ( $result.ExitStatus -eq 0 ) {
+        Write-Host "$message_success $($result.Output)"
+    }
+    else {
+        Write-Host $message_fail
+    }
+}
 
 if (-not(Test-Path './site_config.json' -PathType Leaf)) {
     echo '{' >> site_config.json;
@@ -29,32 +37,35 @@ Set-SCPItem -ComputerName erpnext -Credential $credObject -Path './site_config.j
 Start-Job -ScriptBlock { python3 -m smtpd -n -c DebuggingServer 0.0.0.0:25; }
 
 # install remote debugging server python module
-Invoke-SSHCommand -Command '/home/frappe/frappe-bench/env/bin/pip install ptvsd' -SSHSession $worker
+$result = Invoke-SSHCommand -Command '/home/frappe/frappe-bench/env/bin/pip install ptvsd' -SSHSession $worker
+Write-Log $result 'Remote Debugging Python Module Install Success.' 'Remote Debugging Python Module Install Fail.'
 
 # disable auto debugging
-Invoke-SSHCommand -Command "sudo sed -i 's/web: bench serve --port 8000/#web: bench serve --port 8000/g' /home/frappe/frappe-bench/Procfile" -SSHSession $worker
+$result = Invoke-SSHCommand -Command "sudo sed -i 's/web: bench serve --port 8000/#web: bench serve --port 8000/g' /home/frappe/frappe-bench/Procfile" -SSHSession $worker
+Write-Log $result 'Disabled Auto Debugging Success.' 'Disabled Auto Debugging Fail.'
 
 # update app.py to enable remote debugging
 Set-SCPItem -ComputerName erpnext -Credential $credObject -Path './app.py' -Destination '/home/frappe/frappe-bench/apps/frappe/frappe' -Verbose
 
 # start up services for the frappe webserver (should be in a separate ssh connection)
-Invoke-SSHCommand -Command 'cd /home/frappe/frappe-bench; bench start' -SSHSession $webServerServicesSession
+$result = Invoke-SSHCommand -Command 'cd /home/frappe/frappe-bench; bench start &' -SSHSession $webServerServicesSession
+Write-Log $result 'Startup Webserver Services Success.' 'Startup Webserver Services Fail.'
 
 # startup the webserver itself (should be in a separate ssh connection)
-Invoke-SSHCommand -Command 'cd /home/frappe/frappe-bench/sites; ../env/bin/python ../apps/frappe/frappe/utils/bench_helper.py frappe serve --port 8000 --noreload --nothreading &' -SSHSession $webServerSession
+$result = Invoke-SSHCommand -Command 'cd /home/frappe/frappe-bench/sites; ../env/bin/python ../apps/frappe/frappe/utils/bench_helper.py frappe serve --port 8000 --noreload --nothreading &' -SSHSession $webServerSession
+Write-Log $result 'Startup Webserver Success' 'Startup Webserver Fail.'
 
 Remove-Item site_config.json
 
 # fix up mysql logging  
-Invoke-SSHCommand -Command "sudo sed -i 's/#general_log/general_log/g' /etc/mysql/my.cnf" -SSHSession $worker
-Invoke-SSHCommand -Command "sudo systemctl restart mysql" -SSHSession $worker
-
+$result = Invoke-SSHCommand -Command "sudo sed -i 's/#general_log/general_log/g' /etc/mysql/my.cnf; sudo systemctl restart mysql" -SSHSession $worker
+Write-Log $result 'Config MariaDB Logging Success' 'Config MariaDB Logging Fail.'
 # rsync command here
 # sshpass -p frappe rsync -azP frappe@erpnext:/home/frappe/frappe-bench .
 # remote mouting is MUCH faster
 $mount_dir='/home/vagrant/Desktop/erpnext-working'
 mkdir -p $mount_dir
-sshfs -o allow_other frappe@erpnext:/home/frappe/frappe-bench $mount_dir
+echo frappe | sshfs -o password_stdin -o allow_other frappe@erpnext:/home/frappe/frappe-bench $mount_dir
 mkdir -p $mount_dir/.vscode
 $launch_json="$mount_dir/.vscode/launch.json"
 
