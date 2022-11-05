@@ -13,12 +13,11 @@ foreach($i in $result.Output ) {
   $line_number = $i.split(":")[1]
   #echo "$file_path | $line_number "
   echo "Filepath: $file_path, $line_number" >> frappe-public-endpoints.txt
-  <#
-  $sql_statements_results = Invoke-SSHCommand -Command "grep -rwn '.*sql.*\|select.*\|.*query.*' $file_path" $worker
+  $sql_statements_results = Invoke-SSHCommand -Command "grep -rwn '.*sql.*\|select\|query' $file_path" $worker
+  #echo "$($sql_statements_results.Output)" >> frappe-public-endpoints-with-sql-statements.txt
   if(!([string]::IsNullOrEmpty($sql_statements_results.Output))) {
+    echo ("=" * 100) >> 'frappe-public-endpoints-with-sql-statements.txt'
     echo "File: $file_path" >> 'frappe-public-endpoints-with-sql-statements.txt'
-    echo "Line number: $($sql_statements_results.Output.split(":")[0])" >> 'frappe-public-endpoints-with-sql-statements.txt'
-    echo "Code Block: $($sql_statements_results.Output.split(":")[1])" >> 'frappe-public-endpoints-with-sql-statements.txt'
+    echo "Code Block: \n $($sql_statements_results.Output)" >> 'frappe-public-endpoints-with-sql-statements.txt'
   }
-  #>
 }
