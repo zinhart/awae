@@ -12,9 +12,9 @@ foreach($i in $result.Output ) {
   $file_path = $i.split(":")[0]
   $line_number = $i.split(":")[1]
   #echo "$file_path | $line_number "
-  echo "Filepath: $file_path, $line_number" >> frappe-public-endpoints.txt 
-  $sql_statements_results = Invoke-SSHCommand -Command "grep -rwn 'sql\|select.*\|query' $file_path" $worker
+  echo "Filepath: $file_path, $line_number" >> frappe-public-endpoints.txt
   <#
+  $sql_statements_results = Invoke-SSHCommand -Command "grep -rwn '.*sql.*\|select.*\|.*query.*' $file_path" $worker
   if(!([string]::IsNullOrEmpty($sql_statements_results.Output))) {
     echo "File: $file_path" >> 'frappe-public-endpoints-with-sql-statements.txt'
     echo "Line number: $($sql_statements_results.Output.split(":")[0])" >> 'frappe-public-endpoints-with-sql-statements.txt'
