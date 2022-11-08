@@ -119,6 +119,11 @@ def create_email_template(session, url, proxies=None):
     else:
         res = session.post(url, data=data)
     print(res.content)
+    if res.status_code == 200:
+        return True
+    else:
+        print(F"Error in create_email_template: {res.status_code}, {res.content}")
+        exit(1)
 
 def trigger_ssti_email_template(session, url, proxies=None):
     url += 'api/method/frappe.email.doctype.email_template.email_template.get_email_template'
