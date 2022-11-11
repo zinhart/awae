@@ -1,6 +1,5 @@
 '''
-Challenge:
-
+Challenge: Discover another location where ERPNext uses the render function to execute user-provided code.
 
 With this exploit we leverage the print format capabilities of frappe.
 Print formats are basically templates of how to print different doctypes, which uses Jinja....
