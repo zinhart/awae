@@ -29,3 +29,6 @@ Sys
 *.xml
 temp
 mnt
+/opencrx/opencrx
+/opencrx/*.ear
+/opencrx/*.class
