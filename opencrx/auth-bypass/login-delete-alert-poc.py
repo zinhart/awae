@@ -34,7 +34,7 @@ if 'Logoff&nbsp;guest' in str(res.text):
     res = session.get(url, allow_redirects=True, headers=headers, auth=auth, proxies=proxies)
     print(res.status_code)
     alerts = res.json()
-    
+    print(alerts)
     for i in range(0, int(alerts["@total"])):
         delete_url = alerts['objects'][i]["@href"]
         print("Deleting alert: ", delete_url)
