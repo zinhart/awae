@@ -4,7 +4,6 @@ Import-Module Posh-SSH;
 [string]$userPassword = 'studentlab'
 [securestring]$secStringPassword = ConvertTo-SecureString $userPassword -AsPlainText -Force
 [pscredential]$credObject = New-Object System.Management.Automation.PSCredential ($userName, $secStringPassword)
-<#
 $worker = New-SSHSession -ComputerName $target -Credential $credObject
 
 function Write-Log($result, $message_success, $message_fail) {
@@ -18,7 +17,6 @@ function Write-Log($result, $message_success, $message_fail) {
 }
 $result = Invoke-SSHCommand -Command "cd /home/student/crx/apache-tomee-plus-7.0.5/bin; ./opencrx.sh run" -SSHSession $worker
 Write-Log $result 'Success' 'Fail'
-#>
 
 $mount_dir='/home/vagrant/Desktop/opencrx-working'
 mkdir -p $mount_dir
