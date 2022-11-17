@@ -32,3 +32,4 @@ mnt
 /opencrx/opencrx
 /opencrx/*.ear
 /opencrx/*.class
+/opencrx/hsqldb
