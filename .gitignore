@@ -33,3 +33,7 @@ mnt
 /opencrx/*.ear
 /opencrx/*.class
 /opencrx/hsqldb
+/openitcockpit/js-libraries
+*.key
+*.pem
+*.crt
