@@ -55,13 +55,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--create','-c', help='Create Database', action='store_true')
+    group.add_argument('--delete','-d', help='Remove Database File', action='store_true')
     group.add_argument('--insert','-i', help='Insert Content', action='store_true')
     group.add_argument('--get','-g', help='Get Content', action='store_true')
     group.add_argument('--getLocations','-l', help='Get all Locations', action='store_true')
 
     parser.add_argument('--location','-L')
     parser.add_argument('--content','-C')
+
     args = parser.parse_args()
+
+
     conn = create_connection(database)
 
     if (args.create):
@@ -83,3 +87,6 @@ if __name__ == "__main__":
     if (args.getLocations):
         print("[+] Getting All Locations")
         print(get_locations(conn))
+    if (args.delete):
+        print(F"[+] Remove database file {database}")
+        os.remove(database)
