@@ -32,8 +32,12 @@ mnt
 /opencrx/opencrx
 /opencrx/*.ear
 /opencrx/*.class
+crx.*
+runtime.*
 /opencrx/hsqldb
 /openitcockpit/js-libraries
 *.key
 *.pem
 *.crt
+/openitcockpit/exploit/content
+*.dll
