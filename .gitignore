@@ -42,3 +42,4 @@ runtime.*
 /openitcockpit/exploit/content
 *.dll
 *.db
+/concord/concord-1.43.0
