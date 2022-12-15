@@ -42,3 +42,6 @@ I'm not sure why I didn't realize this but we can check out the database with ps
 ```bash
 psql 'postgresql://postgres:quake1quake2quake3arena@localhost:5432/postgres'
 ```
+
+We can log in with an api key at the following url:
+http://concord:8001/#/login?useApiKey=true
