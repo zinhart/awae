@@ -2,6 +2,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import static java.util.Arrays.asList;
+import java.util.ArrayList;
+import java.util.List;
 public class PostgresClient {
   private String ip = null;
   private String port = null;
@@ -29,6 +32,38 @@ public class PostgresClient {
   private void log(String message) {
     System.out.println(String.format("%s", message));
   }
+  public void update(String table, List<String> columns, List<String> columnsConditions, List<String> columnsConditionsValues, String ... values) {
+    for (int i = 0; i < columns.size(); ++i) {
+        String sql = String.format("UPDATE %s SET %s = '%s' where %s = '%s'", table,columns.get(i), values[i], columnsConditions.get(i), columnsConditionsValues.get(i));
+        log("(+) " + sql);
+    }
+    try {
+
+      } catch(Exception e) {
+         log("(-) Failure in Update");
+         log("(-) " + e.getClass().getName()+": "+e.getMessage());
+         System.exit(0);        
+      }
+  }
+  public void getTables(Connection c) {
+    log("(+) Attempting to retrieve tables");
+    try {
+       Statement stmt = null;
+       String sql = "SELECT * FROM information_schema.tables";
+       stmt = this.c.createStatement();
+       ResultSet rs = stmt.executeQuery(sql);
+       log("(+) ");
+       while ( rs.next() ) {
+          log(String.format("(+) Table Name: %s",rs.getString("table_name")));
+       }
+       rs.close();
+       stmt.close();
+    } catch (Exception e) {
+       log("(-) Failure in getTables");
+       log("(-) "+ e.getClass().getName()+": "+e.getMessage());
+       System.exit(0);
+    }
+  }
   public static void main(String args[]) {
     PostgresClient pgc = null;
     String db = "";
@@ -39,6 +74,7 @@ public class PostgresClient {
         }
         else {
           pgc = new PostgresClient(args[0], args[1], args[2], args[3]);
+          pgc.update( "api_keys", asList("api_key"), asList("user_id"), asList("d4f123c1-f8d4-40b2-8a12-b8947b9ce2d8"), "api key value");
         }
         
     } catch (Exception e) {

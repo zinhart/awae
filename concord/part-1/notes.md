@@ -37,3 +37,8 @@ As a side note we can also enter the docker container manually with:
 ``` bash
 sudo docker exec -it concord1430_concord-server_1 /bin/bash
 ```
+
+I'm not sure why I didn't realize this but we can check out the database with psql,
+```bash
+psql 'postgresql://postgres:quake1quake2quake3arena@localhost:5432/postgres'
+```
