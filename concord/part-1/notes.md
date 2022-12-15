@@ -32,3 +32,8 @@ Specific Location is ApiKeyDao.java
 Interacting with api with admin auth key
 iwr -Uri 'http://concord:8001/api/v1/apikey' -Headers @{ Authorization = "basic "+ [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("KLI+ltQThpx6RQrOc2nDBaM/8tDyVGDw+UVYMXDrqaA"));ContentType= "application/json"}
 curl -H "Authorization: basic KLI+ltQThpx6RQrOc2nDBaM/8tDyVGDw+UVYMXDrqaA" -H "Content-Type: application/json"  http://concord:8001/api/v1/apikey
+
+As a side note we can also enter the docker container manually with:
+``` bash
+sudo docker exec -it concord1430_concord-server_1 /bin/bash
+```
