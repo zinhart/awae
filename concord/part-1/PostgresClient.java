@@ -33,17 +33,23 @@ public class PostgresClient {
     System.out.println(String.format("%s", message));
   }
   public void update(String table, List<String> columns, List<String> columnsConditions, List<String> columnsConditionsValues, String ... values) {
+    ArrayList<String> queries = new ArrayList<String>();
     for (int i = 0; i < columns.size(); ++i) {
         String sql = String.format("UPDATE %s SET %s = '%s' where %s = '%s'", table,columns.get(i), values[i], columnsConditions.get(i), columnsConditionsValues.get(i));
+        queries.add(sql);
         log("(+) " + sql);
     }
     try {
-
-      } catch(Exception e) {
+      for (int i = 0; i < queries.size(); ++i) {
+         Statement stmt = this.c.createStatement();
+         stmt.executeUpdate(queries.get(i));
+         stmt.close();
+      }
+    } catch(Exception e) {
          log("(-) Failure in Update");
          log("(-) " + e.getClass().getName()+": "+e.getMessage());
          System.exit(0);        
-      }
+    }
   }
   public void getTables(Connection c) {
     log("(+) Attempting to retrieve tables");
@@ -62,6 +68,43 @@ public class PostgresClient {
        log("(-) Failure in getTables");
        log("(-) "+ e.getClass().getName()+": "+e.getMessage());
        System.exit(0);
+    }
+  }
+  public void getPermissions(String table) {
+     log(String.format("(+) Attempting to retrieve permissions for table: %s", table));
+     try {
+        Statement stmt = null;
+        String sql = String.format("SELECT grantee, privilege_type FROM information_schema.role_table_grants WHERE table_name='%s'", table);
+        stmt = this.c.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+        log("(+) Grantee Privilege Type");
+        while ( rs.next() ) {
+           System.out.println(String.format("(+) %s %s",rs.getString("grantee"),rs.getString("privilege_type")));
+        }
+        rs.close();
+        stmt.close();
+     } catch(Exception e) {
+        log("(-) Failure in getPermissions");
+        log(e.getClass().getName()+": "+e.getMessage());
+        System.exit(0);
+     }
+  }
+  public void getColumns(String table) {
+    System.out.println(String.format("(+) Attempting to retrieve column names from table: %s", table));
+    try {
+        Statement stmt = null;
+        String sql = String.format("SELECT column_name, data_type FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '%s'", table);
+        stmt = this.c.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+        while ( rs.next() ) {
+          log(String.format("(+) Column Name: %s | Datatype: %s",rs.getString("column_name"), rs.getString("data_type")));
+        }
+        rs.close();
+        stmt.close();
+    } catch(Exception e) {
+        log("(-) Failure in getColumns");
+        log(e.getClass().getName()+": "+e.getMessage());
+        System.exit(0);
     }
   }
   public static void main(String args[]) {
