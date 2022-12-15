@@ -36,8 +36,32 @@ public class Client {
         System.out.println(String.format("ApiKey: %s", api_key));
         return api_key;
    }
-   public static void insert(Connection c, String table, List<String> columns, String ... values) {
+   public static void update(Connection c, String table, List<String> columns, List<String> columnsConditions, List<String> columnsConditionsValues, String ... values) {
+      String colUnpacked = "";
+      System.out.print("(+) ");
+      for (int i = 0; i < columns.size(); ++i) {
+          String sql = String.format("UPDATE %s SET %s = '%s' where %s = '%s'", table,columns.get(i), values[i], columnsConditions.get(i), columnsConditionsValues.get(i));
+           System.out.print(sql);
+         if (i < columns.size() - 1) {
+            //colUnpacked += columns.at(i);
+            colUnpacked += ",";
+            //System.out.print(columns.at(i));
+            //System.out.print(" ");
 
+            //String sql = String.format("UPDATE %s SET api_key = '%s' where user_id = 'd4f123c1-f8d4-40b2-8a12-b8947b9ce2d8'", table, generateAPIKeyHash(apiKey));
+         }
+         else {
+            //colUnpacked += columns.at(i);
+            //System.out.print(columns.at(i));
+         }
+      }
+      try {
+
+      } catch(Exception e) {
+         System.err.println("(-) Failure in Update");
+         System.err.println(e.getClass().getName()+": "+e.getMessage());
+         System.exit(0);        
+      }
    }
    public static void update(Connection c) {
       try {
@@ -137,7 +161,6 @@ public class Client {
             colUnpacked += columns[i];
             System.out.print(columns[i]);
          }
-
       }
       System.out.println("");
       try {
@@ -204,7 +227,7 @@ public class Client {
          System.out.println("--------------------------------------------------------------------------------------------------------------------------------------------------");
          dumpTable(c, "roles", "role_id", "role_name", "global_reader", "global_writer");
 
-         insert(c, "api_keys", asList("col1", "col2", "col3"), "val1", "val2", "val3");
+         //update(c, "api_keys", asList("col1", "col2", "col3"), "val1", "val2", "val3");
          c.close();
       }catch(Exception e) {
          System.err.println("(-) Failure in getColumns");
@@ -226,7 +249,10 @@ public class Client {
          }
          //dbExtract(db, port);
          //generateSecureRandom();
-         updateAPIKey(db, port);
+         //updateAPIKey(db, port);
+            //String sql = String.format("UPDATE %s SET api_key = '%s' where user_id = 'd4f123c1-f8d4-40b2-8a12-b8947b9ce2d8'", table, generateAPIKeyHash(apiKey));
+         update(c, "api_keys", asList("api_key"), asList("user_id"), asList("d4f123c1-f8d4-40b2-8a12-b8947b9ce2d8"), "api key value");
+         //update(c, "api_keys", asList("col1", "col2", "col3"), "val1", "val2", "val3");
          
       } catch (Exception e) {
          e.printStackTrace();
