@@ -45,3 +45,5 @@ psql 'postgresql://postgres:quake1quake2quake3arena@localhost:5432/postgres'
 
 We can log in with an api key at the following url:
 http://concord:8001/#/login?useApiKey=true
+
+Default apikey: O+JMYwBsU797EKtlRQYu+Q
