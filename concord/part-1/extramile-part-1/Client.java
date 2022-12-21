@@ -81,7 +81,7 @@ public class Client {
          System.err.println("(-) Failure in Update");
          System.err.println(e.getClass().getName()+": "+e.getMessage());
          System.exit(0);
-      }     
+      }
    }
    public static void getPermissions(Connection c, String table) {
       System.out.println(String.format("(+) Attempting to retrieve permissions for table: %s", table));
@@ -247,11 +247,11 @@ public class Client {
             db = args[0];
             port = args[1];
          }
-         //dbExtract(db, port);
+         dbExtract(db, port);
          //generateSecureRandom();
          //updateAPIKey(db, port);
             //String sql = String.format("UPDATE %s SET api_key = '%s' where user_id = 'd4f123c1-f8d4-40b2-8a12-b8947b9ce2d8'", table, generateAPIKeyHash(apiKey));
-         update(c, "api_keys", asList("api_key"), asList("user_id"), asList("d4f123c1-f8d4-40b2-8a12-b8947b9ce2d8"), "api key value");
+         //update(c, "api_keys", asList("api_key"), asList("user_id"), asList("d4f123c1-f8d4-40b2-8a12-b8947b9ce2d8"), "api key value");
          //update(c, "api_keys", asList("col1", "col2", "col3"), "val1", "val2", "val3");
          
       } catch (Exception e) {
