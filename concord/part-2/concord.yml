@@ -1,0 +1,7 @@
+flows:
+  default:
+  - log: "Secret is: ${secret}"
+
+configuration:
+  arguments:
+    secret: ${crypto.decryptString('vyblrnt+hP8GNVOfSl9WXgGcQZceBhOmcyhQ0alyX6Rs5ozQbEvChU9K7FWSe7cf')}
