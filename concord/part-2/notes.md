@@ -2,9 +2,17 @@ We can use:
 ```bash
 curl  -H 'Authorization: O+JMYwBsU797EKtlRQYu+Q'  http://concord:8001/api/v1/process -F concord.yml=@concord.yml -F org=OffSec -F project=AWAE
 ```
-This is a work in progress. For some reason get-content is mangling concord.yml
+Really important. In order to use set the **content type** to ***application/octet-stream*** on form uploads use:
 ```powershell
-iwr -Uri 'http://concord:8001/api/v1/process' -Method Post -Headers @{ Authorization = "O+JMYwBsU797EKtlRQYu+Q"} -Form @{org = 'OffSec'; project = 'AWAE'; 'concord.yml'= get-content ./concord.yml}
+get-item
+``` 
+instead of:
+```powershell
+get-content -raw 
+```
+Basicallly **application/octet-stream** on **content-type** indicates binary content. If a there is no **System.IO.FileInfo** object (which is return by **get-item**) **invoke-webrequest** assumes the content is **text/plain**.
+```powershell
+iwr -Uri 'http://concord:8001/api/v1/process' -Method Post -Headers @{ Authorization = "O+JMYwBsU797EKtlRQYu+Q"} -Form @{org = 'OffSec'; project = 'AWAE'; 'concord.yml'= get-item ./concord.yml}
 ```
 
 To decrypt the value. For this to work however we must enable enable payload archives in the project settings.
