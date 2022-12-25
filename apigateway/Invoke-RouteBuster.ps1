@@ -34,7 +34,6 @@ function Invoke-RouteBuster() {
       #write-output $url
       $res_get = Invoke-WebRequest -Uri $url -Method Get -SkipHttpErrorCheck
       $res_post = Invoke-WebRequest -Uri $url -Method Post -SkipHttpErrorCheck
-      $res_get | Select-Object -Property *
       if( ($res_get.StatusCode -notin $ignore_status_codes) -or ($res_post.StatusCode -notin $ignore_status_codes)) {
         $props = [ordered]@{
           URI = $url
@@ -43,6 +42,7 @@ function Invoke-RouteBuster() {
           GET_RES = $res_get
           POST_RES = $res_post
         }
+
         $found = New-Object -TypeName PSObject -Property $props
         Write-Output $found | Format-List
       }
