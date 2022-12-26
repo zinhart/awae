@@ -61,7 +61,13 @@ function Invoke-RouteBuster() {
           $map[$method] = $resp
       }
       # ignore all of the null values in map, which effectively are methods not chosen
-      $filtered_responses = $map.GetEnumerator() | ? { $null  -ne $_.Value}
+      $filtered_responses = $map.GetEnumerator() | ? { $null  -ne $_.Value }
+      
+      # when there is only one verb force $filtered_responses to be an array
+      if($filtered_responses -isnot [array]){
+        $filtered_responses = @($filtered_responses)
+      }
+      
 
       # even though certain requests maybe not be valid it's still interesting to see how the reponses that were not filtered out in comparison     
       $include = $false
