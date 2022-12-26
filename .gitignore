@@ -43,3 +43,4 @@ runtime.*
 *.dll
 *.db
 /concord/concord-1.43.0
+/apigateway/directus*
