@@ -27,15 +27,15 @@ PS> Invoke-RouteBuster -ActionList /usr/share/wordlists/dirb/small.txt -Wordlist
 #>
 function Invoke-RouteBuster() {
   param(
-  [Parameter(Mandatory=$true, HelpMessage='Specify string to be hashed. Accepts from pipeline.')]
+  [Parameter(Mandatory=$true, HelpMessage='A list of actions to try against known endpoints.')]
   [string]$ActionList,
-  [Parameter(Mandatory=$true, HelpMessage='abc')]
+  [Parameter(Mandatory=$true, HelpMessage='Target URI.')]
   [string]$Target,
-  [Parameter(Mandatory=$true, HelpMessage='abc')]
+  [Parameter(Mandatory=$true, HelpMessage='A list of preferrable known endpoints.')]
   [string]$Wordlist,
-  [Parameter(Mandatory = $false, HelpMessage = 'HTTP Methods to Use With Verb Tampering ')]
+  [Parameter(Mandatory = $false, HelpMessage = 'HTTP Methods to Use With Verb Tampering.')]
   [String[]] $Methods = @('GET', 'POST'),
-  [Parameter(Mandatory = $false, HelpMessage = 'Filter displayed status codes')]
+  [Parameter(Mandatory = $false, HelpMessage = 'Filter displayed status codes.')]
   [Int32[]] $DisplayFilter = @(204,401,403,404)
   )
   $actions_list = Get-Content $ActionList
