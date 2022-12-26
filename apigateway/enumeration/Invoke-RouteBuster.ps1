@@ -26,7 +26,7 @@ function Invoke-RouteBuster() {
   )
   $actions_list = Get-Content $ActionList
   $word_list = Get-Content $Wordlist
-  $ignore_status_codes = 204,401
+  $ignore_status_codes = 204,401,403,404
   
   <#
   for($i = 0; $i -lt $Methods.Length; ++$i ) {
@@ -61,21 +61,34 @@ function Invoke-RouteBuster() {
       }
       # ignore all of the null values in map
       $filtered_responses = $map.GetEnumerator() | ? { $null  -ne $_.Value}
-      #Write-Output $filtered_requests
-
+      #Write-Output $filtered_responses
+      
+      $include = $false
+      foreach($iter in $filtered_responses.GetEnumerator()) {
+        if( $iter.Value.StatusCode -notin $ignore_status_codes) {
+          $include = $true
+          break;
+        }
+      }
       #$output_set = $filtered_requests.GetEnumerator() |
       $props2 = [ordered]@{
         URI = $url
       }
       foreach($resp in $filtered_responses.GetEnumerator()) {
-        $status_code = "$($resp.Key)"
-        $resp_obj = "$($resp.Key)_RES"
+        $status_code = "$($resp.Key.toUpper())"
         $props2[$status_code] = $resp.Value.StatusCode
+      }
+      # We do this separately to enforce ordering
+      foreach($resp in $filtered_responses.GetEnumerator()) {
+        $resp_obj = "$($resp.Key.toUpper())_RES"
         $props2["$resp_obj"] = $resp.Value
       }
 
+      if($include) {
       $result = New-Object -TypeName PSObject -Property $props2
       write-output $result
+      }
+
       <#
       for($k = 0; $k -lt $Methods.Length; ++$k ) {
         $status_code = "$($Methods[$k])"
