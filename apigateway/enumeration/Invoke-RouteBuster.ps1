@@ -20,11 +20,13 @@ function Invoke-RouteBuster() {
   [Parameter(Mandatory=$true, HelpMessage='abc')]
   [string]$Wordlist,
   [Parameter(Mandatory = $false, HelpMessage = 'abc')]
-  [String[]] $Methods = @('GET', 'POST')
+  [String[]] $Methods = @('GET', 'POST'),
+  [Parameter(Mandatory = $false, HelpMessage = 'Filter displayed status codes')]
+  [Int32[]] $DisplayFilter
   )
   $actions_list = Get-Content $ActionList
   $word_list = Get-Content $Wordlist
-  $ignore_status_codes = 204,401,404
+  $ignore_status_codes = 204,401
   
   <#
   for($i = 0; $i -lt $Methods.Length; ++$i ) {
@@ -44,22 +46,49 @@ function Invoke-RouteBuster() {
       $url = "$($target)/$($word_list[$i])/$($actions_list[$j])"
       $inner_percent_complete = [System.Math]::Round($j / $actions_list.Length * 100,2)
       Write-Progress -ParentId 1 -Activity "Url: $url" -Status "$inner_percent_complete% Complete:" -PercentComplete $inner_percent_complete;
-      $map = @{
-          'get'   = $null
-          'post'  = $null
-          'put'   = $null
-          'patch' = $null
+      $map = [ordered]@{
+          'GET'   = $null
+          'POST'  = $null
+          'PUT'   = $null
+          'PATCH' = $null
         }
       # make requests
       foreach($method in $Methods) {
-        $verb =  $method.toLower()
-        $resp = Invoke-WebRequest -Uri $url -Method $verb -SkipHttpErrorCheck
-        $map[$verb] = $resp
+        $resp = Invoke-WebRequest -Uri $url -Method $method -SkipHttpErrorCheck
+        #if( $resp.StatusCode -notin $ignore_status_codes ) {
+          $map[$method] = $resp
+        #}
       }
+      # ignore all of the null values in map
+      $filtered_responses = $map.GetEnumerator() | ? { $null  -ne $_.Value}
+      #Write-Output $filtered_requests
+
+      #$output_set = $filtered_requests.GetEnumerator() |
       $props2 = [ordered]@{
         URI = $url
       }
+      foreach($resp in $filtered_responses.GetEnumerator()) {
+        $status_code = "$($resp.Key)"
+        $resp_obj = "$($resp.Key)_RES"
+        $props2[$status_code] = $resp.Value.StatusCode
+        $props2["$resp_obj"] = $resp.Value
+      }
+
+      $result = New-Object -TypeName PSObject -Property $props2
+      write-output $result
+      <#
+      for($k = 0; $k -lt $Methods.Length; ++$k ) {
+        $status_code = "$($Methods[$k])"
+        $resp_obj = "$($Methods[$k])_RES"
+        $props2[$status_code] = $map[$Methods[$k]].StatusCode
+        $props2["$resp_obj"] = $map[$Methods[$k]]
+      }
+      #>
+      #$props2
+      #$result = New-Object -TypeName PSObject -Property $props2
+      #write-output $result
       # build output
+      <#
       for($k = 0; $k -lt $Methods.Length; ++$k ) {
         #write-host $key
         $resp = Invoke-WebRequest -Uri $url -Method $Methods[$k] -SkipHttpErrorCheck
@@ -78,6 +107,7 @@ function Invoke-RouteBuster() {
       }
       #$test = New-Object -TypeName PSObject -Property $props2
       #Write-Output $test
+      #>
       $res_get = Invoke-WebRequest -Uri $url -Method Get -SkipHttpErrorCheck
       $res_post = Invoke-WebRequest -Uri $url -Method Post -SkipHttpErrorCheck
       if( ($res_get.StatusCode -notin $ignore_status_codes) -or ($res_post.StatusCode -notin $ignore_status_codes)) {
