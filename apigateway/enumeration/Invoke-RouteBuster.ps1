@@ -59,9 +59,8 @@ function Invoke-RouteBuster() {
           $map[$method] = $resp
         #}
       }
-      # ignore all of the null values in map
+      # ignore all of the null values in map, which effectively are methods not chosen
       $filtered_responses = $map.GetEnumerator() | ? { $null  -ne $_.Value}
-      #Write-Output $filtered_responses
       
       $include = $false
       foreach($iter in $filtered_responses.GetEnumerator()) {
@@ -70,24 +69,27 @@ function Invoke-RouteBuster() {
           break;
         }
       }
-      #$output_set = $filtered_requests.GetEnumerator() |
-      $props2 = [ordered]@{
-        URI = $url
-      }
-      foreach($resp in $filtered_responses.GetEnumerator()) {
-        $status_code = "$($resp.Key.toUpper())"
-        $props2[$status_code] = $resp.Value.StatusCode
-      }
-      # We do this separately to enforce ordering
-      foreach($resp in $filtered_responses.GetEnumerator()) {
-        $resp_obj = "$($resp.Key.toUpper())_RES"
-        $props2["$resp_obj"] = $resp.Value
+      if($include) {
+        $props2 = [ordered]@{
+          URI = $url
+        }
+        foreach($resp in $filtered_responses.GetEnumerator()) {
+          $status_code = "$($resp.Key.toUpper())"
+          $props2[$status_code] = $resp.Value.StatusCode
+        }
+        # We do this separately to enforce ordering
+        foreach($resp in $filtered_responses.GetEnumerator()) {
+          $resp_obj = "$($resp.Key.toUpper())_RES"
+          $props2["$resp_obj"] = $resp.Value
+        }
+        # even though certain requests maybe not be valid it's still interesting to see how the reponses that were not filtered out in comparison
+        if($include) {
+        $result = New-Object -TypeName PSObject -Property $props2
+        write-output $result
+        }
       }
 
-      if($include) {
-      $result = New-Object -TypeName PSObject -Property $props2
-      write-output $result
-      }
+
 
       <#
       for($k = 0; $k -lt $Methods.Length; ++$k ) {
@@ -121,6 +123,7 @@ function Invoke-RouteBuster() {
       #$test = New-Object -TypeName PSObject -Property $props2
       #Write-Output $test
       #>
+      <#
       $res_get = Invoke-WebRequest -Uri $url -Method Get -SkipHttpErrorCheck
       $res_post = Invoke-WebRequest -Uri $url -Method Post -SkipHttpErrorCheck
       if( ($res_get.StatusCode -notin $ignore_status_codes) -or ($res_post.StatusCode -notin $ignore_status_codes)) {
@@ -134,6 +137,7 @@ function Invoke-RouteBuster() {
         $found = New-Object -TypeName PSObject -Property $props
         #Write-Output $found
       }
+      #>
     }
   }
 }
