@@ -1,4 +1,11 @@
 <#
+.SYNOPSIS
+URLs for RESTful APIs often follow a pattern of <object>/<action> or <object>/<identifier>. We might be able to discover more services by taking the list of endpoints we have already identified and iterating through a wordlist to find valid actions or identifiers. We also need to keep in mind that web APIs might respond differently based on which HTTP request method we use.
+For example, a GET request to /auth might return an HTTP 404 response, while a POST request to the same URL returns an HTTP 200 OK on a valid login or an HTTP 401 Unauthorized on an invalid login attempt.
+This script returns the URI, HTTP Status Code per method, and the Response object to STDOUT.
+Therefore you easily do something like:
+$test = Invoke-RouteBuster -ActionList ./actions-only-valid.txt -Wordlist ./wordlist-only-valid.txt -Target http://apigateway:8000 -Methods get,post
+$test[0]
 .Description
 The purpose of this script is to enumerate microservices built with Restful API's via HTTP verb tampering
 .PARAMETER ActionList
@@ -13,13 +20,10 @@ A list of HTTP methods to use, i.e get,post,put,patch,delete
 A list to filter responses based on HTTP status codes.
 .EXAMPLE
 PS> Invoke-RouteBuster -ActionList /usr/share/wordlists/dirb/small.txt -Wordlist endpoints-stripped.txt -Target http://apigateway:8000
-.SYNOPSIS
-URLs for RESTful APIs often follow a pattern of <object>/<action> or <object>/<identifier>. We might be able to discover more services by taking the list of endpoints we have already identified and iterating through a wordlist to find valid actions or identifiers. We also need to keep in mind that web APIs might respond differently based on which HTTP request method we use.
-For example, a GET request to /auth might return an HTTP 404 response, while a POST request to the same URL returns an HTTP 200 OK on a valid login or an HTTP 401 Unauthorized on an invalid login attempt.
-This script returns the URI, HTTP Status Code per method, and the Response object to STDOUT.
-Therefore you easily do something like:
-$test = Invoke-RouteBuster -ActionList ./actions-only-valid.txt -Wordlist ./wordlist-only-valid.txt -Target http://apigateway:8000 -Methods get,post
-$test[0]
+.NOTES
+  Version:        1.0
+  Author:         Zinhart
+  Purpose/Change: Created while studying for OSWE certification
 #>
 function Invoke-RouteBuster() {
   param(
