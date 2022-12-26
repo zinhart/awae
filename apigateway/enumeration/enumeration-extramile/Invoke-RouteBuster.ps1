@@ -23,30 +23,35 @@ function Invoke-RouteBuster() {
   $actions_list = Get-Content $ActionList
   $word_list = Get-Content $Wordlist
   $ignore_status_codes = 204,401,403,404
-  foreach($word in $word_list) {
-    foreach($action in $actions_list) {
-      $url = "http://apigateway:8000/files/import" #"$target/$word/$action"
+  for($i = 0; $i -lt $word_list.Length; ++$i ) {
+    $outer_percent_complete = [System.Math]::Round($i / $word_list.Length * 100)
+    Write-Progress -Id 1 -Activity "Current Word: $($word_list[$i])" -Status "$outer_percent_complete% Complete:" -PercentComplete $outer_percent_complete;
+    for($j = 0; $j -lt $actions_list.Length; ++$j ) {
+      $url = "$($target)/$($word_list[$i])/$($actions_list[$j])"
+      #$url = "$($target)/files/import"
+      $inner_percent_complete = [System.Math]::Round($j / $actions_list.Length * 100,2)
+      Write-Progress -ParentId 1 -Activity "Url: $url" -Status "$inner_percent_complete% Complete:" -PercentComplete $inner_percent_complete;
       #write-output $url
       $res_get = Invoke-WebRequest -Uri $url -Method Get -SkipHttpErrorCheck
       $res_post = Invoke-WebRequest -Uri $url -Method Post -SkipHttpErrorCheck
       $res_put = Invoke-WebRequest -Uri $url -Method Put -SkipHttpErrorCheck
       $res_patch = Invoke-WebRequest -Uri $url -Method Patch -SkipHttpErrorCheck
-      <#if( ($res_get.StatusCode -notin $ignore_status_codes) -or ($res_post.StatusCode -notin $ignore_status_codes) -or ($res_put.StatusCode -notin $ignore_status_codes -or ($res_patch.StatusCode -notin $ignore_status_codes))#>
-if( ($res_get.StatusCode -notin $ignore_status_codes) -or ($res_post.StatusCode -notin $ignore_status_codes)
-      ) {
+      if( ($res_get.StatusCode -notin $ignore_status_codes) -or ($res_post.StatusCode -notin $ignore_status_codes) -or ($res_put.StatusCode -notin $ignore_status_codes) -or ($res_patch.StatusCode -notin $ignore_status_codes)) {
         $props = [ordered]@{
           URI = $url
           GET = $res_get.StatusCode
           POST = $res_post.StatusCode
           PUT = $res_put.StatusCode
           PATCH = $res_patch.StatusCode
+          GET_RES = $res_get
+          POST_RES = $res_post
+          PUT_RES = $res_post
+          PATCH_RES = $res_post
         }
-        $result = New-Object -TypeName PSObject -Property $props
-        write-output $result | FT
-        break
+
+        $found = New-Object -TypeName PSObject -Property $props
+        Write-Output $found
       }
     }
-    break
   }
-  
 }
