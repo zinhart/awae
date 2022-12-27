@@ -78,21 +78,21 @@ function Invoke-RouteBuster() {
         }
       }
       if($include) {
-        $props2 = [ordered]@{
+        $props = [ordered]@{
           URI = $url
         }
         foreach($resp in $filtered_responses.GetEnumerator()) {
           $status_code = "$($resp.Key.toUpper())"
-          $props2[$status_code] = $resp.Value.StatusCode
+          $props[$status_code] = $resp.Value.StatusCode
         }
         # We do this separately to enforce ordering
         foreach($resp in $filtered_responses.GetEnumerator()) {
           $resp_obj = "$($resp.Key.toUpper())_RES"
-          $props2["$resp_obj"] = $resp.Value
+          $props["$resp_obj"] = $resp.Value
         }
 
         if($include) {
-        $result = New-Object -TypeName PSObject -Property $props2
+        $result = New-Object -TypeName PSObject -Property $props
         write-output $result
         }
       }
