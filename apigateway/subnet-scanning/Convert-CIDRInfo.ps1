@@ -193,7 +193,7 @@ function Get-IPRange
     }
 }
 
-function Get-Potential_Gateways
+function Get-GatewaysEnumerated
 {
     param(
         [string] $StartBinary,
@@ -233,7 +233,7 @@ function Get-NetworkInformationFromProperCIDR
         [psobject] $CIDRObject
     )
     $o = '' | Select-Object -Property IP, NetworkLength, SubnetMask, NetworkAddress, HostMin, HostMax, 
-        Broadcast, UsableHosts, TotalHosts, PotentialGateways, IPEnumerated, BinaryIP, BinarySubnetMask, BinaryNetworkAddress,
+        Broadcast, UsableHosts, TotalHosts, GatewaysEnumerated, IPEnumerated, BinaryIP, BinarySubnetMask, BinaryNetworkAddress,
         BinaryBroadcast
     $o.IP = [string] $CIDRObject.IP
     $o.BinaryIP = Convert-IPToBinary $o.IP
@@ -313,12 +313,12 @@ function Get-NetworkInformationFromProperCIDR
     }
     if($Gateway)
     {
-      $PotentialGateways = @(Get-Potential_Gateways $o.BinaryNetworkAddress $o.BinaryNetworkAddress.SubString(0, $o.NetworkLength).PadRight(32, '1'))
-      $o.PotentialGateways = $PotentialGateways
+      $GatewaysEnumerated = @(Get-GatewaysEnumerated $o.BinaryNetworkAddress $o.BinaryNetworkAddress.SubString(0, $o.NetworkLength).PadRight(32, '1'))
+      $o.GatewaysEnumerated = $GatewaysEnumerated
     }
     else
     {
-        $o.PotentialGateways = @()
+        $o.GatewaysEnumerated = @()
     }
     return $o
 }
