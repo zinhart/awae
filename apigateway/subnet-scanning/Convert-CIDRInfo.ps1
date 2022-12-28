@@ -13,8 +13,11 @@
 .PARAMETER Contains
   Return a boolean value for whether the specified IP is in the specified network. Includes network address and broadcast address.
 .EXAMPLE
+  '172.16.0.0/24' | ./Convert-CIDRInfo.ps1
 .EXAMPLE
-    '192.168.1.128/30' | Get-IpRange
+  ./Convert-CIDRInfo.ps1 -NetworkAddress '172.16.0.0/12' -Gateway
+.EXAMPLE
+  ./Convert-CIDRInfo.ps1 -NetworkAddress '172.16.0.0/12' -Enumerate
 .NOTES
   Version:        1.0
   Author:         Zinhart
@@ -37,8 +40,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-# This is a regex I made to match an IPv4 address precisely ( http://www.powershelladmin.com/wiki/PowerShell_regex_to_accurately_match_IPv4_address_%280-255_only%29 )
-$IPv4Regex = '(?:(?:0?0?\d|0?[1-9]\d|1\d\d|2[0-5][0-5]|2[0-4]\d)\.){3}(?:0?0?\d|0?[1-9]\d|1\d\d|2[0-5][0-5]|2[0-4]\d)'
+# this regex is a bit cleaner than the original for detecting ipv4 addresses.
+$IPv4Regex = '(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
 
 function Convert-IPToBinary
 {
@@ -196,7 +199,7 @@ function Get-Potential_Gateways
         [string] $StartBinary,
         [string] $EndBinary
     )
-    [int64] $StartInt = [System.Convert]::ToInt64($StartBinary, 2) + 1
+    [int64] $StartInt = [System.Convert]::ToInt64($StartBinary, 2) + 1 # the gateway is typically at .1
     [int64] $EndInt = [System.Convert]::ToInt64($EndBinary, 2)
     for ($BinaryIP = $StartInt; $BinaryIP -le $EndInt; $BinaryIP+=256)
     {
