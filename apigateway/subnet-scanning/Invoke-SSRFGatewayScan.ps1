@@ -31,6 +31,9 @@
 .EXAMPLE
   If we wanted to scan for hostname:8000
   PS> Invoke-SSRFGatewayScan -Target http://apigateway:8000/files/import -Port 8000 -Hostnames 'path to worklist'
+.Example
+  If we want to scan a range of ports in a subnet specified by the CIDR:
+  Invoke-SSRFGatewayScan -Target http://apigateway:8000/files/import -NetworkAddress '172.16.16.0/28' -Hosts -Open
 #>
 function Invoke-SSRFGatewayScan() {
   [cmdletbinding()]
@@ -54,7 +57,6 @@ function Invoke-SSRFGatewayScan() {
   [string[]]$Ports= @('22','80','443', '1433', '1521', '3306', '3389', '5000', '5432', '5900', '6379','8000','8001','8055','8080','8443','9000'),
   [Parameter(Mandatory=$false, HelpMessage='Show Only Open ports')]
   [switch]$Open
-
   )
 <#
 1. Changes need debugging to make sure they work right, so gateway,hosts, hostnames
@@ -98,8 +100,10 @@ function Invoke-SSRFGatewayScan() {
             $res | Add-Member -NotePropertyName IP -NotePropertyValue $ip
             $res | Add-Member -NotePropertyName Port -NotePropertyValue $p
             if($Open) {
-              if($res.Content -notlike '*EHOSTUNREACH*') # dns lookup failure
-              { Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength }
+              if($res.Content -notlike '*EHOSTUNREACH*') # no route found to ip
+              {
+                Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength 
+              }
             }
             else {
               Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
