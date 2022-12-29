@@ -37,30 +37,27 @@ function Invoke-SSRFPortScan() {
   [switch]$Open
   )
   $results = New-Object -TypeName "System.Collections.ArrayList"
-  for ($i = 0; $i -le $Ports.Length; ++$i) {
+  for ($i = 0; $i -lt $Ports.Length; ++$i) {
     $percent_complete = [System.Math]::Round($i / $Ports.Length * 100)
     $port =  $Ports[$i]
     Write-Progress -Id 1 -Activity "Current Port: $($port)" -Status "$percent_complete% Complete:" -PercentComplete $percent_complete;
 
     $internal_ip = $SSRF + ":" + $port
     $json = @{"url" = $internal_ip} | ConvertTo-Json
+
     $res = Invoke-WebRequest -uri $target -method Post -body $json -ContentType 'application/json' -SkipHttpErrorCheck -TimeoutSec $Timeout
-    $props = [ordered]@{
-        'PORT'  = $port
-        'RESPONSE'   = $res
-    }
-    $output = New-Object -TypeName PSObject -Property $props
-    [void]$results.Add($output)
+    $res | Add-Member -NotePropertyName Target -NotePropertyValue $internal_ip
+    [void]$results.Add($res)
   }
   if($Open) {
     foreach ($result in $results) { 
-      $table = $($result.response.Content | ConvertFrom-Json)
+      $table = $($result.Content | ConvertFrom-Json)
       if($table.errors.message -notlike "*ECONNREFUSED*" ) {
-        Write-Output $result
+        Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
       }
     }
   }
   else {
-    Write-Output $results
+    Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
   }
 }
