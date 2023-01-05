@@ -56,7 +56,10 @@ function Invoke-SSRFGatewayScan() {
   [Parameter(Mandatory=$false, HelpMessage='Ports to scan for Hosts/Gateways for')]
   [string[]]$Ports= @('22','80','443', '1433', '1521', '3306', '3389', '5000', '5432', '5900', '6379','8000','8001','8055','8080','8443','9000'),
   [Parameter(Mandatory=$false, HelpMessage='Show Only Open ports')]
-  [switch]$Open
+  [switch]$Open,
+  [Parameter(Mandatory = $false, HelpMessage = 'Varying levels of output.')]
+  [ValidateSet("v","vv","vvv",ErrorMessage="Verbosity not one of (v,vv,vvv)", IgnoreCase=$true)]
+  [String] $Verbosity= "v"
   )
 <#
 1. Changes need debugging to make sure they work right, so gateway,hosts, hostnames
@@ -73,7 +76,16 @@ function Invoke-SSRFGatewayScan() {
             $res = Invoke-WebRequest -uri $target -method Post -body $json -ContentType 'application/json' -SkipHttpErrorCheck -TimeoutSec $Timeout -ErrorAction Stop
             $res | Add-Member -NotePropertyName IP -NotePropertyValue $g
             $res | Add-Member -NotePropertyName Port -NotePropertyValue $p
-            Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+            if ($Verbosity -eq 'v') {
+              Write-Output $res | Select-Object -property IP, Port, StatusCode, Content
+            }
+            if ($Verbosity -eq 'vv') {
+              Write-Output $res | Select-Object -property IP, Port, StatusCode, RawContent, Headers
+            }
+            if ($Verbosity -eq 'vvv') {
+              Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+            }
+            
           }
           catch {
             foreach ($e in $Error) {
@@ -102,11 +114,29 @@ function Invoke-SSRFGatewayScan() {
             if($Open) {
               if($res.Content -notlike '*EHOSTUNREACH*') # no route found to ip
               {
-                Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength 
+                if ($Verbosity -eq 'v') {
+                  Write-Output $res | Select-Object -property IP, Port, StatusCode, Content
+                }
+                if ($Verbosity -eq 'vv') {
+                  Write-Output $res | Select-Object -property IP, Port, StatusCode, RawContent, Headers
+                }
+                if ($Verbosity -eq 'vvv') {
+                  Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+                }
+                #Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength 
               }
             }
             else {
-              Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+              if ($Verbosity -eq 'v') {
+                Write-Output $res | Select-Object -property IP, Port, StatusCode, Content
+              }
+              if ($Verbosity -eq 'vv') {
+                Write-Output $res | Select-Object -property IP, Port, StatusCode, RawContent, Headers
+              }
+              if ($Verbosity -eq 'vvv') {
+                Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+              }
+              #Write-Output $res | Select-Object -property IP, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
             }
           }
           catch {
@@ -136,10 +166,30 @@ function Invoke-SSRFGatewayScan() {
           $res | Add-Member -NotePropertyName Port -NotePropertyValue $p         
           if($Open) {
             if($res.Content -notlike '*EAI_AGAIN*') # dns lookup failure
-            { Write-Output $res | Select-Object -property Host, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength }
+            { 
+              if ($Verbosity -eq 'v') {
+                Write-Output $res | Select-Object -property Host, Port, StatusCode, Content
+              }
+              if ($Verbosity -eq 'vv') {
+                Write-Output $res | Select-Object -property Host, Port, StatusCode, RawContent, Headers
+              }
+              if ($Verbosity -eq 'vvv') {
+                Write-Output $res | Select-Object -property Host, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+              }
+              #Write-Output $res | Select-Object -property Host, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength 
+            }
           }
           else {
-            Write-Output $res | Select-Object -property Host, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+            if ($Verbosity -eq 'v') {
+              Write-Output $res | Select-Object -property Host, Port, StatusCode, Content
+            }
+            if ($Verbosity -eq 'vv') {
+              Write-Output $res | Select-Object -property Host, Port, StatusCode, RawContent, Headers
+            }
+            if ($Verbosity -eq 'vvv') {
+              Write-Output $res | Select-Object -property Host, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+            }
+            #Write-Output $res | Select-Object -property Host, Port, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
           }
         }
         catch {

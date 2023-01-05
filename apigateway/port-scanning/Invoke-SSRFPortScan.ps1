@@ -13,8 +13,15 @@
   Defaults to true, will only show open ports. Setting this to false will all ports.
 .PARAMETER Ports
   A list of ports to scan for. The default ports are: ['22','80','443', '1433', '1521', '3306', '3389', '5000', '5432', '5900', '6379','8000','8001','8055','8080','8443','9000']
-.OUTPUTS
-  Returns PSCustomObject with the corresponding port and response object
+.PARAMETER Verbosity
+Valid values are
+v
+vv
+vvv
+v: returns Target, StatusCode, Content
+vv: returns Target, StatusCode, RawContent, Headers
+vvv: returns Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+
 .NOTES
   Version:        1.0
   Author:         Zinhart
@@ -34,7 +41,10 @@ function Invoke-SSRFPortScan() {
   [Parameter(Mandatory = $false, HelpMessage = 'a list of ports to use.')]
   [String[]] $Ports = @('22','80','443', '1433', '1521', '3306', '3389', '5000', '5432', '5900', '6379','8000','8001','8055','8080','8443','9000'),
   [Parameter(Mandatory=$false, HelpMessage='Show Only Open ports')]
-  [switch]$Open
+  [switch]$Open,
+  [Parameter(Mandatory = $false, HelpMessage = 'Varying levels of output.')]
+  [ValidateSet("v","vv","vvv",ErrorMessage="Verbosity not one of (v,vv,vvv)", IgnoreCase=$true)]
+  [String] $Verbosity= "v"
   )
   $results = New-Object -TypeName "System.Collections.ArrayList"
   try {
@@ -50,17 +60,33 @@ function Invoke-SSRFPortScan() {
       $res | Add-Member -NotePropertyName Target -NotePropertyValue $internal_ip
       [void]$results.Add($res)
     }
-    if($Open) {
-      foreach ($result in $results) { 
-        $table = $($result.Content | ConvertFrom-Json)
+    foreach ($result in $results) { 
+      $table = $($result.Content | ConvertFrom-Json)
+      if ($Open) {
         if($table.errors.message -notlike "*ECONNREFUSED*" ) {
-          Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+          if ($Verbosity -eq 'v') {
+            Write-Output $result | Select-Object -property Target, StatusCode, Content 
+          }
+          if ($Verbosity -eq 'vv') {
+            Write-Output $result | Select-Object -property Target, StatusCode, RawContent, Headers
+          }
+          if ($Verbosity -eq 'vvv') {
+            Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+          }
         }
       }
+      else {
+        if ($Verbosity -eq 'v') {
+            Write-Output $result | Select-Object -property Target, StatusCode, Content 
+          }
+          if ($Verbosity -eq 'vv') {
+            Write-Output $result | Select-Object -property Target, StatusCode, RawContent, Headers
+          }
+          if ($Verbosity -eq 'vvv') {
+            Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
+          }
+        }
     }
-    else {
-      Write-Output $result | Select-Object -property Target, StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
-    }   
   }
   catch {
     foreach ($e in $Error) {

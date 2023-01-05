@@ -18,6 +18,14 @@ The full target URI
 A list of HTTP methods to use, i.e get,post,put,patch,delete
 .PARAMETER DisplayFilter
 A list to filter responses based on HTTP status codes.
+.PARAMETER Verbosity
+Valid values are
+v
+vv
+vvv
+v: returns just the status code
+vv: returns StatusCode, StatusDescription, RawContent, Headers
+vvv: returns StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength
 .EXAMPLE
 PS> Invoke-RouteBuster -ActionList /usr/share/wordlists/dirb/small.txt -Wordlist endpoints-stripped.txt -Target http://apigateway:8000
 .NOTES
@@ -34,9 +42,13 @@ function Invoke-RouteBuster() {
   [Parameter(Mandatory=$true, HelpMessage='A list of preferrable known endpoints.')]
   [string]$Wordlist,
   [Parameter(Mandatory = $false, HelpMessage = 'HTTP Methods to Use With Verb Tampering.')]
+  [ValidateSet("GET","POST","PUT","PATCH","DELETE",ErrorMessage="HTTP verb not one of (GET,POST,PUT,PATCH,DELETE)", IgnoreCase=$true)]
   [String[]] $Methods = @('GET', 'POST'),
   [Parameter(Mandatory = $false, HelpMessage = 'Filter displayed status codes.')]
-  [Int32[]] $DisplayFilter = @(204,401,403,404)
+  [Int32[]] $DisplayFilter = @(204,401,403,404),
+  [Parameter(Mandatory = $false, HelpMessage = 'Varying levels of output.')]
+  [ValidateSet("v","vv","vvv",ErrorMessage="Verbosity not one of (v,vv,vvv)", IgnoreCase=$true)]
+  [String] $Verbosity= "v"
   )
   $actions_list = Get-Content $ActionList
   $word_list = Get-Content $Wordlist
@@ -81,19 +93,17 @@ function Invoke-RouteBuster() {
         $props = [ordered]@{
           URI = $url
         }
-        foreach($resp in $filtered_responses.GetEnumerator()) {
-          $status_code = "$($resp.Key.toUpper())"
-          $props[$status_code] = $resp.Value.StatusCode
-        }
         # We do this separately to enforce ordering
         foreach($resp in $filtered_responses.GetEnumerator()) {
-          $resp_obj = "$($resp.Key.toUpper())_RES"
-          $props["$resp_obj"] = $resp.Value
+          $resp_obj = "$($resp.Key.toUpper())"
+          if ($Verbosity -eq 'v') {$props["$resp_obj"] = ($resp.Value | Select-Object -property StatusCode).StatusCode}
+          if ($Verbosity -eq 'vv') {$props["$resp_obj"] = $resp.Value | Select-Object -property StatusCode, StatusDescription, RawContent, Headers}
+          if ($Verbosity -eq 'vvv') {$props["$resp_obj"] = $resp.Value | Select-Object -property StatusCode, StatusDescription, Content, RawContent, Headers, RawContentLength}
         }
 
         if($include) {
-        $result = New-Object -TypeName PSObject -Property $props
-        write-output $result
+          $result = New-Object -TypeName PSObject -Property $props
+          write-output $result
         }
       }
     }
