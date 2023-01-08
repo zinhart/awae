@@ -23,6 +23,7 @@ for x in range(1,7):
     for p in ports:
         try:
             r = requests.post(url=baseurl, json={"url":"{host}:{port}".format(host=host,port=int(p))}, timeout=timeout)
+            print(r.text)
             if args.verbose:
                 print("\t{port:0} \t {msg}".format(port=int(p), msg=r.text))
             if "Request failed with status code 404" in r.text:
