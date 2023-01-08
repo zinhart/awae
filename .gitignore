@@ -45,3 +45,4 @@ runtime.*
 /concord/concord-1.43.0
 /apigateway/directus*
 *.pdf
+/apigateway/rce/url-to-pdf-api-master
