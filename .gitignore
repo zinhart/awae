@@ -46,3 +46,4 @@ runtime.*
 /apigateway/directus*
 *.pdf
 /apigateway/rce/url-to-pdf-api-master
+/chips/ejs/*.log
