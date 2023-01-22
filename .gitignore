@@ -47,3 +47,5 @@ runtime.*
 *.pdf
 /apigateway/rce/url-to-pdf-api-master
 /chips/ejs/*.log
+/chips/handlebars/*.log
+/chips/pug/*.log
