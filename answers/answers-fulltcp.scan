@@ -1,0 +1,13 @@
+# Nmap 7.93 scan initiated Sun Jan 29 10:16:44 2023 as: nmap -sS -p- -vv -oN answers-fulltcp.scan -T4 answers
+Nmap scan report for answers (192.168.143.251)
+Host is up, received reset ttl 63 (0.080s latency).
+Scanned at 2023-01-29 10:16:45 EST for 36s
+Not shown: 65531 closed tcp ports (reset)
+PORT     STATE SERVICE        REASON
+22/tcp   open  ssh            syn-ack ttl 63
+80/tcp   open  http           syn-ack ttl 63
+8000/tcp open  http-alt       syn-ack ttl 63
+8888/tcp open  sun-answerbook syn-ack ttl 63
+
+Read data files from: /usr/bin/../share/nmap
+# Nmap done at Sun Jan 29 10:17:21 2023 -- 1 IP address (1 host up) scanned in 36.93 seconds
