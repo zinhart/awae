@@ -50,3 +50,4 @@ runtime.*
 /chips/handlebars/*.log
 /chips/pug/*.log
 /answers/node_modules
+/answers/app
