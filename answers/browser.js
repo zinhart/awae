@@ -6,12 +6,26 @@ const cookie = {
   'value': String(arg[2]),
   'domain': 'answers',
 };
+const cookies = [
+  {
+    'name': String(arg[1]),
+    'value': String(arg[2]),
+    'domain': 'answers',
+  },
+  {
+    'name': 'isAdmin',
+    'value': 'true',
+    'domain': 'answers',
+  },
+];
+
 (async () => {
   // Puppeteer stuff 
   const browser = await puppeteer.launch({ headless: false });        
   try {
 	const page = await browser.newPage();
-	await page.setCookie(cookie);
+  await page.setCookie(...cookies);
+	//await page.setCookie(cookie);
 	// navigate to a page
 	await page.goto(url)
  } finally {

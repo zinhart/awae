@@ -159,5 +159,13 @@ Here is a better payload
   - more specifically we can enumerate the entire application from a logged on perspective using client.js from openitcockpit.
 - SQLi via /question form title field
   - A title of more that 128 chars breaks the sql query, what's import to note is that This uses a prepared statement so may not be injection be as good.
+- Potential blind sqli in updateModQuestion in QuestionDAO.java
+  - This uses a naive sqli filter, defined in sqlutil.java
+  - This is a post request to /moderate/{id}
+    - furthermore this takes an *active* parameter which define the text to update in the moderated question.
+  - For this to work we would have to set the *isAdmin* field in the *users* table to *True*
+  - In terms of exfiltration this is a time-based blind vuln
+    - we can set the *active* parameter to:
+    > (select 1)=1
 
 
