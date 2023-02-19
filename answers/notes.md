@@ -207,3 +207,5 @@ Here we can get the admin key
   ]>
   <database><categories><category><name>&key;</name></category></categories></database>
 ```
+
+psql -U webapp -d answers -h localhost -p 5432

