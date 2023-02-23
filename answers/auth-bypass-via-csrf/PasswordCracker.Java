@@ -44,17 +44,17 @@ public class PasswordCracker
     hash = args[2];
     for (long l = start; l <= stop; l++) {
       try {
-     // compare to see if like password pulled from db  
-     String plaintext = generatePassword(length, l);
-     System.out.println(plaintext);
-     if(comparePasswords(hashPassword(plaintext), hash)) {
-      System.out.println("Found Password: " + plaintext);
-    }
+        // compare to see if like password pulled from db  
+        String plaintext = generatePassword(length, l);
+        //System.out.println(hashPassword(plaintext)+ " | " +  hash +  " | "+ plaintext);
+        if(comparePasswords(plaintext, hash)) {
+          System.out.println("Found Password: " + plaintext);
+          break;
+        }
       }
       catch(Exception e) {
 
       }
-
+    }
   }
-}
 }

