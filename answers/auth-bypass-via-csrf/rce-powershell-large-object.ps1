@@ -238,3 +238,4 @@ Remove-Job -Job $server_job -Force;
 Remove-Item -Path $csrf_payload.Name;
 Remove-Item '*.class';
 Remove-Item 'wrapper.dtd';
+Remove-Item 'reverse.elf';
