@@ -210,6 +210,7 @@ Here we can get the admin key
 logging into the answers sql db
 ```bash
 psql -U webapp -d answers -h localhost -p 5432
+export PGPASSWORD='7UxWFfLpsu4rJA94';psql -U webapp -d answers -h localhost -p 5432
 ```
 proxying apt updates to compile the .so for shell injection
 ```bash

