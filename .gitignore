@@ -51,3 +51,4 @@ runtime.*
 /chips/pug/*.log
 /answers/node_modules
 /answers/app
+/docedit/src
