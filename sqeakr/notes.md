@@ -43,3 +43,11 @@ Grab a specific Folder:
 ```powershell
 ./exfil.ps1 -OutputDir ./sqeakr-exfil/api -BaseFolder '....//api'
 ```
+
+The most interesting directories are:
+
+- /api
+- /sqeakr
+- /main
+- /templates/pages
+
