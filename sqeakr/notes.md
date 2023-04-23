@@ -51,3 +51,10 @@ The most interesting directories are:
 - /main
 - /templates/pages
 
+sqeakviews.py in api has an insecure deserialization method on the get drafts
+https://davidhamann.de/2020/04/05/exploiting-python-pickle/
+
+As a note python serialized data always begins with gASV when it's base64 encoded and c28004c29526000000000000 when its hex encoded.
+
+On the drafts endpoint we can supply a base64 encoded serialized object and get code execution
+
