@@ -52,3 +52,4 @@ runtime.*
 /answers/node_modules
 /answers/app
 /docedit/src
+/sqeakr/sqeakr-exfil
