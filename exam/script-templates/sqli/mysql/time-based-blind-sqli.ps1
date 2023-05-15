@@ -33,7 +33,7 @@ $transport = {
 <#
 #################################################
 These are the scriptblocks that will be passed as
-SQLISCRIPTBLOCK
+SQLISCRIPTBLOCK, See the examples
 #################################################
 #>
 $getLength = {
