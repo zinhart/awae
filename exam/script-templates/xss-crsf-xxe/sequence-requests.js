@@ -3,6 +3,7 @@ async function exploit() {
 
   requests.push(
     {
+ // pay attention when defining the target SOP and Origin can cuck us if for example they log onto http://localhost and set url to http://127.0.0.1. They are NOT the same origin
       url: `http://target/first/request`,
       config: { // set relevant paramenters here
         "method":"POST",
@@ -33,8 +34,8 @@ async function exploit() {
   // See for scaling fetch with: https://stackoverflow.com/questions/40981040/using-a-fetch-inside-another-fetch-in-javascript
 
   // and handle errors
-  const handleFetch = async (request,config) => {
-    const res = await fetch(request,config).catch(console.error);
+  const handleFetch = async (url,config) => {
+    const res = await fetch(url,config).catch(console.error);
     return res.text();
   }
 
@@ -44,7 +45,7 @@ async function exploit() {
     const prev = await acc;
     console.log('previous call:', prev);
 
-    return handleFetch(curr.request, curr.config);
+    return handleFetch(curr.url, curr.config); // url and config are directly defined on the request object
   }
 
   const pipeFetch = async requests => requests.reduce(reduceFetch, Promise.resolve(''));
